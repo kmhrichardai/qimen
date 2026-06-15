@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>奇門遁甲 - AI問事 (九宮全資訊獨立干+宮位優化版)</title>
+<title>奇門遁甲 - AI問事 (九宮全資訊版)</title>
 <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; padding: 15px; margin: 0; padding-bottom: 120px; color: #1c1c1e; }
     h2 { font-size: 20px; color: #000; }
@@ -11,6 +11,7 @@
     select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fff; margin-top: 8px; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
     .panel { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); }
     
+    /* 調整標題佈局，讓複製功能靠右 */
     .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px; margin-bottom: 12px; }
     .panel-title { font-size: 18px; font-weight: bold; color: #007aff; margin: 0; }
     .copy-tool { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #8e8e93; }
@@ -31,21 +32,21 @@
     .select-container::after { content: "▼"; font-size: 12px; color: #8e8e93; position: absolute; right: 12px; top: 18px; pointer-events: none; }
     .panel-header .select-container::after { top: 10px; right: 8px; font-size: 10px; }
     
-    .gan-container { display: flex; flex-direction: column; gap: 2px; }
-    .gan-status-box { display: flex; gap: 2px; margin-top: 2px; }
-    .gan-status-box .btn-check { padding: 2px 0; font-size: 10px; border-radius: 4px; }
-    
+    /* 預覽區塊樣式 */
     textarea#previewArea { width: 100%; height: 180px; padding: 12px; font-family: monospace; font-size: 14px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fafafa; color: #333; box-sizing: border-box; resize: none; margin-top: 8px; }
     
+    /* 九宮格預覽專用樣式 (採用經典奇門遁甲上南下北排布) */
     .jiugong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #c7c7cc; border: 2px solid #8e8e93; border-radius: 8px; overflow: hidden; margin-top: 10px; }
     .jiugong-cell { background: #fff; min-height: 120px; padding: 6px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-sizing: border-box; }
     .cell-title { font-size: 12px; font-weight: bold; color: #8e8e93; border-bottom: 1px dashed #e5e5ea; width: 100%; text-align: center; padding-bottom: 3px; margin-bottom: 5px; background: #f2f2f7; }
     .cell-content { font-size: 11px; width: 100%; text-align: left; line-height: 1.4; color: #1c1c1e; }
     .cell-god-tag { background: #e1f5fe; color: #0288d1; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 2px; border: 1px solid #b3e5fc; }
 
+    /* 內置區塊按鈕樣式 */
     .inner-copy-btn { width: 100%; margin-top: 12px; background: #34c759; color: #fff; padding: 10px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .inner-copy-btn:active { background: #28a745; }
 
+    /* 底部固定按鈕列 */
     .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 15px 20px; border-top: 1px solid #e5e5ea; display: flex; gap: 15px; z-index: 100; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
     .bottom-bar button { flex: 1; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; transition: 0.2s; }
     .btn-clear { background: #ff3b30; color: #fff; }
@@ -105,13 +106,12 @@ const topics = {
     "出行尋物 (綜合)": ["日干 (求測者)", "時干 (目的地/失物)", "六合 (方向/失蹤者)", "傷門 (交通車輛)"]
 };
 
-const visualPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
-const selectPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
-
+// 宮位名單已將 中五宮(土) 修改為 陰盤(無中) 以保持內部抓取結構一致
+const palaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
 const jiaMap = {"無": "", "子 (戊)": "戊", "戌 (己)": "己", "申 (庚)": "庚", "午 (辛)": "辛", "辰 (壬)": "壬", "寅 (癸)": "癸"};
 const gods = ["值符", "騰蛇", "太陰", "六合", "白虎", "玄武", "九地", "九天"];
 const tiangan = ["乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
-const stars = ["天蓬星", "天芮禽星", "天沖星", "天輔星", "天心星", "天柱星", "天任星", "天英星"];
+const stars = ["天蓬星", "天芮禽星", "天沖星", "天輔星", "天心星", "天柱星", "天任星", "天英星"]; // 天衝星已更正為天沖星
 const doors = ["休門", "生門", "傷門", "杜門", "景門", "死門", "驚門", "開門"];
 
 window.onload = function() {
@@ -155,7 +155,7 @@ function renderPanels() {
         // 1. 宮位與甲藏
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
-                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + selectPalaces.map(x=>`<option>${x}</option>`).join('') + `</select>
+                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + palaces.map(x=>`<option>${x}</option>`).join('') + `</select>
                 <select class="jia-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + Object.keys(jiaMap).map(x=>`<option value="${jiaMap[x]}">${x}</option>`).join('') + `</select>
             </div>
         </div>`;
@@ -167,31 +167,19 @@ function renderPanels() {
 
         // 3. 天盤天干
         html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項)</label><div class="grid-5">`;
-        tiangan.forEach(t => { 
-            html += `
-            <div class="gan-container">
-                <label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>
-                <div class="gan-status-box">
-                    <label style="flex:1;"><input type="checkbox" class="tian-status-jx" data-gan="${t}" value="刑" onchange="updatePreview()"><div class="btn-check">刑</div></label>
-                    <label style="flex:1;"><input type="checkbox" class="tian-status-rm" data-gan="${t}" value="墓" onchange="updatePreview()"><div class="btn-check">墓</div></label>
-                </div>
-            </div>`;
-        });
-        html += `</div></div>`;
+        tiangan.forEach(t => { html += `<label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>`; });
+        html += `</div><div class="harm-group">
+            <label><input type="checkbox" class="tian-jx" value="擊刑" onchange="updatePreview()"><div class="btn-check">帶[擊刑]</div></label>
+            <label><input type="checkbox" class="tian-rm" value="入墓" onchange="updatePreview()"><div class="btn-check">帶[入墓]</div></label>
+        </div></div>`;
 
         // 4. 地盤天干
         html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項)</label><div class="grid-5">`;
-        tiangan.forEach(t => { 
-            html += `
-            <div class="gan-container">
-                <label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>
-                <div class="gan-status-box">
-                    <label style="flex:1;"><input type="checkbox" class="di-status-jx" data-gan="${t}" value="刑" onchange="updatePreview()"><div class="btn-check">刑</div></label>
-                    <label style="flex:1;"><input type="checkbox" class="di-status-rm" data-gan="${t}" value="墓" onchange="updatePreview()"><div class="btn-check">墓</div></label>
-                </div>
-            </div>`;
-        });
-        html += `</div></div>`;
+        tiangan.forEach(t => { html += `<label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>`; });
+        html += `</div><div class="harm-group">
+            <label><input type="checkbox" class="di-jx" value="擊刑" onchange="updatePreview()"><div class="btn-check">帶[擊刑]</div></label>
+            <label><input type="checkbox" class="di-rm" value="入墓" onchange="updatePreview()"><div class="btn-check">帶[入墓]</div></label>
+        </div></div>`;
 
         // 5. 九星
         html += `<div class="form-group"><label class="title">5. 九星</label><div class="grid-4">`;
@@ -221,18 +209,20 @@ function renderPanels() {
     updatePreview();
 }
 
+// 核心解法：處理 Radio 點擊，如果原本已勾選，再次點擊時取消勾選
 function handleRadioClick(radio) {
     if (radio.dataset.checked === "true") {
         radio.checked = false;
         radio.dataset.checked = "false";
     } else {
+        // 先把同一個 name 的其他 radio 的標記都清空
         const siblings = document.querySelectorAll(`input[name="${radio.name}"]`);
         siblings.forEach(r => r.dataset.checked = "false");
         
         radio.checked = true;
         radio.dataset.checked = "true";
     }
-    updatePreview();
+    updatePreview(); // 觸發即時連動更新
 }
 
 function copyPanelData(targetIdx, sourceIdx) {
@@ -246,67 +236,69 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetPanel.querySelector('.palace-sel').selectedIndex = sourcePanel.querySelector('.palace-sel').selectedIndex;
     targetPanel.querySelector('.jia-sel').selectedIndex = sourcePanel.querySelector('.jia-sel').selectedIndex;
 
-    // 複製天盤八神
+    // 複製天盤八神與狀態記號
     const sourceTg = sourcePanel.querySelector(`input[name="tg_${sourceIdx}"]:checked`);
     const targetTgs = targetPanel.querySelectorAll(`input[name="tg_${targetIdx}"]`);
-    targetTgs.forEach(r => { r.checked = false; r.dataset.checked = "false"; });
+    targetTgs.forEach(r => r.dataset.checked = "false");
     if (sourceTg) {
         let tRadio = targetPanel.querySelector(`input[name="tg_${targetIdx}"][value="${sourceTg.value}"]`);
-        if(tRadio) { tRadio.checked = true; tRadio.dataset.checked = "true"; }
+        tRadio.checked = true;
+        tRadio.dataset.checked = "true";
+    } else {
+        const checkedTg = targetPanel.querySelector(`input[name="tg_${targetIdx}"]:checked`);
+        if (checkedTg) checkedTg.checked = false;
     }
 
-    // 安全修復：複製天盤天干與個別刑墓狀態
     targetPanel.querySelectorAll('.tian-gan').forEach((cb, i) => {
-        const srcCb = sourcePanel.querySelectorAll('.tian-gan')[i];
-        cb.checked = srcCb.checked;
-        const val = cb.value;
-        const srcJx = sourcePanel.querySelector(`.tian-status-jx[data-gan="${val}"]`);
-        const srcRm = sourcePanel.querySelector(`.tian-status-rm[data-gan="${val}"]`);
-        const tgtJx = targetPanel.querySelector(`.tian-status-jx[data-gan="${val}"]`);
-        const tgtRm = targetPanel.querySelector(`.tian-status-rm[data-gan="${val}"]`);
-        if(srcJx && tgtJx) tgtJx.checked = srcJx.checked;
-        if(srcRm && tgtRm) tgtRm.checked = srcRm.checked;
+        cb.checked = sourcePanel.querySelectorAll('.tian-gan')[i].checked;
     });
+    targetPanel.querySelector('.tian-jx').checked = sourcePanel.querySelector('.tian-jx').checked;
+    targetPanel.querySelector('.tian-rm').checked = sourcePanel.querySelector('.tian-rm').checked;
 
-    // 安全修復：複製地盤天干與個別刑墓狀態
     targetPanel.querySelectorAll('.di-gan').forEach((cb, i) => {
-        const srcCb = sourcePanel.querySelectorAll('.di-gan')[i];
-        cb.checked = srcCb.checked;
-        const val = cb.value;
-        const srcJx = sourcePanel.querySelector(`.di-status-jx[data-gan="${val}"]`);
-        const srcRm = sourcePanel.querySelector(`.di-status-rm[data-gan="${val}"]`);
-        const tgtJx = targetPanel.querySelector(`.di-status-jx[data-gan="${val}"]`);
-        const tgtRm = targetPanel.querySelector(`.di-status-rm[data-gan="${val}"]`);
-        if(srcJx && tgtJx) tgtJx.checked = srcJx.checked;
-        if(srcRm && tgtRm) tgtRm.checked = srcRm.checked;
+        cb.checked = sourcePanel.querySelectorAll('.di-gan')[i].checked;
     });
+    targetPanel.querySelector('.di-jx').checked = sourcePanel.querySelector('.di-jx').checked;
+    targetPanel.querySelector('.di-rm').checked = sourcePanel.querySelector('.di-rm').checked;
 
-    // 複製九星
+    // 複製九星與狀態記號
     const sourceStar = sourcePanel.querySelector(`input[name="star_${sourceIdx}"]:checked`);
     const targetStars = targetPanel.querySelectorAll(`input[name="star_${targetIdx}"]`);
-    targetStars.forEach(r => { r.checked = false; r.dataset.checked = "false"; });
+    targetStars.forEach(r => r.dataset.checked = "false");
     if (sourceStar) {
         let tRadio = targetPanel.querySelector(`input[name="star_${targetIdx}"][value="${sourceStar.value}"]`);
-        if(tRadio) { tRadio.checked = true; tRadio.dataset.checked = "true"; }
+        tRadio.checked = true;
+        tRadio.dataset.checked = "true";
+    } else {
+        const checkedStar = targetPanel.querySelector(`input[name="star_${targetIdx}"]:checked`);
+        if (checkedStar) checkedStar.checked = false;
     }
 
-    // 複製八門
+    // 複製八門與狀態記號
     const sourceDoor = sourcePanel.querySelector(`input[name="door_${sourceIdx}"]:checked`);
     const targetDoors = targetPanel.querySelectorAll(`input[name="door_${targetIdx}"]`);
-    targetDoors.forEach(r => { r.checked = false; r.dataset.checked = "false"; });
+    targetDoors.forEach(r => r.dataset.checked = "false");
     if (sourceDoor) {
         let tRadio = targetPanel.querySelector(`input[name="door_${targetIdx}"][value="${sourceDoor.value}"]`);
-        if(tRadio) { tRadio.checked = true; tRadio.dataset.checked = "true"; }
+        tRadio.checked = true;
+        tRadio.dataset.checked = "true";
+    } else {
+        const checkedDoor = targetPanel.querySelector(`input[name="door_${targetIdx}"]:checked`);
+        if (checkedDoor) checkedDoor.checked = false;
     }
     targetPanel.querySelector('.door-mp').checked = sourcePanel.querySelector('.door-mp').checked;
 
-    // 複製地盤八神
+    // 複製地盤八神與狀態記號
     const sourceDg = sourcePanel.querySelector(`input[name="dg_${sourceIdx}"]:checked`);
     const targetDgs = targetPanel.querySelectorAll(`input[name="dg_${targetIdx}"]`);
-    targetDgs.forEach(r => { r.checked = false; r.dataset.checked = "false"; });
+    targetDgs.forEach(r => r.dataset.checked = "false");
     if (sourceDg) {
         let tRadio = targetPanel.querySelector(`input[name="dg_${targetIdx}"][value="${sourceDg.value}"]`);
-        if(tRadio) { tRadio.checked = true; tRadio.dataset.checked = "true"; }
+        tRadio.checked = true;
+        tRadio.dataset.checked = "true";
+    } else {
+        const checkedDg = targetPanel.querySelector(`input[name="dg_${targetIdx}"]:checked`);
+        if (checkedDg) checkedDg.checked = false;
     }
 
     targetPanel.querySelector('.spec-kw').checked = sourcePanel.querySelector('.spec-kw').checked;
@@ -339,7 +331,7 @@ function getOutputString() {
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
     output.push(`問事主題 : ${topicText}\n==============================\n`);
 
-    document.querySelectorAll('#panelsContainer > .panel').forEach((p, idx) => {
+    document.querySelectorAll('.panel').forEach((p, idx) => {
         if(!p.dataset.godname) return;
 
         let lines = [];
@@ -349,37 +341,25 @@ function getOutputString() {
         let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`);
         if(tGod) lines.push(`天盤八神 : ${tGod.value}`);
 
-        let tGansArr = [];
-        p.querySelectorAll('.tian-gan:checked').forEach(cb => {
-            let g = cb.value;
-            let tHarms = [];
-            let jxBox = p.querySelector(`.tian-status-jx[data-gan="${g}"]`);
-            let rmBox = p.querySelector(`.tian-status-rm[data-gan="${g}"]`);
-            if(jxBox && jxBox.checked) tHarms.push("擊刑");
-            if(rmBox && rmBox.checked) tHarms.push("入墓");
-            let harmStr = tHarms.length ? `(${tHarms.join(",")})` : "";
-            tGansArr.push(g + harmStr);
-        });
-
+        let tGans = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
         let jiaVal = p.querySelector('.jia-sel').value;
         let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text;
         let jiaStr = jiaVal ? ` (${jiaText}旬首)` : "";
         
-        if(tGansArr.length) lines.push(`天盤 : ${tGansArr.join("+")}${jiaStr}`);
+        let tHarms = [];
+        if(p.querySelector('.tian-jx').checked) tHarms.push("擊刑");
+        if(p.querySelector('.tian-rm').checked) tHarms.push("入墓");
+        let tHarmStr = tHarms.length ? ` ( ${tHarms.join(", ")} )` : "";
+        
+        if(tGans.length) lines.push(`天盤 : ${tGans.join("+")}${jiaStr}${tHarmStr}`);
         else if(jiaVal) lines.push(`天盤甲藏 : ${jiaStr.trim()}`);
 
-        let dGansArr = [];
-        p.querySelectorAll('.di-gan:checked').forEach(cb => {
-            let g = cb.value;
-            let dHarms = [];
-            let jxBox = p.querySelector(`.di-status-jx[data-gan="${g}"]`);
-            let rmBox = p.querySelector(`.di-status-rm[data-gan="${g}"]`);
-            if(jxBox && jxBox.checked) dHarms.push("擊刑");
-            if(rmBox && rmBox.checked) dHarms.push("入墓");
-            let harmStr = dHarms.length ? `(${dHarms.join(",")})` : "";
-            dGansArr.push(g + harmStr);
-        });
-        if(dGansArr.length) lines.push(`地盤 : ${dGansArr.join("+")}`);
+        let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
+        let dHarms = [];
+        if(p.querySelector('.di-jx').checked) dHarms.push("擊刑");
+        if(p.querySelector('.di-rm').checked) dHarms.push("入墓");
+        let dHarmStr = dHarms.length ? ` ( ${dHarms.join(", ")} )` : "";
+        if(dGans.length) lines.push(`地盤 : ${dGans.join("+")}${dHarmStr}`);
 
         let star = p.querySelector(`input[name="star_${idx}"]:checked`);
         if(star) lines.push(`九星 : ${star.value}`);
@@ -411,9 +391,11 @@ function updatePreview() {
         previewBox.value = getOutputString();
     }
 
-    visualPalaces.forEach(pName => {
+    palaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
-        if(cell) { cell.querySelector('.cell-content').innerHTML = ""; }
+        if(cell) {
+            cell.querySelector('.cell-content').innerHTML = "";
+        }
     });
 
     document.querySelectorAll('#panelsContainer > .panel').forEach((p, idx) => {
@@ -426,27 +408,21 @@ function updatePreview() {
             let contentDiv = cell.querySelector('.cell-content');
             let godShort = p.dataset.godname.split(" ")[0]; 
             
-            let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`) ? p.querySelector(`input[name="tg_${idx}"]:checked').value : "";
-            let dGod = p.querySelector(`input[name="dg_${idx}"]:checked`) ? p.querySelector(`input[name="dg_${idx}"]:checked').value : "";
+            let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`) ? p.querySelector(`input[name="tg_${idx}"]:checked`).value : "";
+            let dGod = p.querySelector(`input[name="dg_${idx}"]:checked`) ? p.querySelector(`input[name="dg_${idx}"]:checked`).value : "";
             
-            let star = p.querySelector(`input[name="star_${idx}"]:checked`) ? p.querySelector(`input[name="star_${idx}"]:checked').value.substring(0,2) : "";
-            let door = p.querySelector(`input[name="door_${idx}"]:checked`) ? p.querySelector(`input[name="door_${idx}"]:checked').value.substring(0,2) : "";
+            let star = p.querySelector(`input[name="star_${idx}"]:checked`) ? p.querySelector(`input[name="star_${idx}"]:checked`).value.substring(0,2) : "";
+            let door = p.querySelector(`input[name="door_${idx}"]:checked`) ? p.querySelector(`input[name="door_${idx}"]:checked`).value.substring(0,2) : "";
             if (door && p.querySelector('.door-mp').checked) {
                 door += `<span style="color:#ff3b30; font-size:10px;">(迫)</span>`;
             }
 
-            let tGansVisual = [];
-            p.querySelectorAll('.tian-gan:checked').forEach(cb => {
-                let g = cb.value;
-                let hArr = [];
-                let jxBox = p.querySelector(`.tian-status-jx[data-gan="${g}"]`);
-                let rmBox = p.querySelector(`.tian-status-rm[data-gan="${g}"]`);
-                if(jxBox && jxBox.checked) hArr.push("刑");
-                if(rmBox && rmBox.checked) hArr.push("墓");
-                let hStr = hArr.length ? `(${hArr.join(".")})` : "";
-                tGansVisual.push(g + hStr);
-            });
-            let tGansStr = tGansVisual.join("+");
+            let tGansArr = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
+            let tHarmArr = [];
+            if(p.querySelector('.tian-jx').checked) tHarmArr.push("刑");
+            if(p.querySelector('.tian-rm').checked) tHarmArr.push("墓");
+            let tHarmStr = tHarmArr.length ? `(${tHarmArr.join(".")})` : "";
+            let tGansStr = tGansArr.length ? tGansArr.join("+") + tHarmStr : "";
 
             let jiaVal = p.querySelector('.jia-sel').value;
             if(!tGansStr && jiaVal) {
@@ -454,18 +430,12 @@ function updatePreview() {
                 tGansStr = `首:${jiaText}`;
             }
 
-            let dGansVisual = [];
-            p.querySelectorAll('.di-gan:checked').forEach(cb => {
-                let g = cb.value;
-                let hArr = [];
-                let jxBox = p.querySelector(`.di-status-jx[data-gan="${g}"]`);
-                let rmBox = p.querySelector(`.di-status-rm[data-gan="${g}"]`);
-                if(jxBox && jxBox.checked) hArr.push("刑");
-                if(rmBox && rmBox.checked) hArr.push("墓");
-                let hStr = hArr.length ? `(${hArr.join(".")})` : "";
-                dGansVisual.push(g + hStr);
-            });
-            let dGansStr = dGansVisual.join("+");
+            let dGansArr = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
+            let dHarmArr = [];
+            if(p.querySelector('.di-jx').checked) dHarmArr.push("刑");
+            if(p.querySelector('.di-rm').checked) dHarmArr.push("墓");
+            let dHarmStr = dHarmArr.length ? `(${dHarmArr.join(".")})` : "";
+            let dGansStr = dGansArr.length ? dGansArr.join("+") + dHarmStr : "";
 
             let gansDisplay = "";
             if (tGansStr || dGansStr) {
@@ -496,6 +466,7 @@ function updatePreview() {
 
 function copyToClipboard() {
     let finalStr = getOutputString();
+    
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(finalStr).then(() => {
             showSuccessState();
