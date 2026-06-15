@@ -105,10 +105,7 @@ const topics = {
     "出行尋物 (綜合)": ["日干 (求測者)", "時干 (目的地/失物)", "六合 (方向/失蹤者)", "傷門 (交通車輛)"]
 };
 
-// 用於渲染九宮格的完整名單
 const visualPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
-
-// 用於下拉選單的名單（已將「陰盤(無中)」剔除，符合實際操作易理）
 const selectPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
 
 const jiaMap = {"無": "", "子 (戊)": "戊", "戌 (己)": "己", "申 (庚)": "庚", "午 (辛)": "辛", "辰 (壬)": "壬", "寅 (癸)": "癸"};
@@ -155,7 +152,7 @@ function renderPanels() {
             </div>
         </div>`;
         
-        // 1. 宮位與甲藏 (此處採用 selectPalaces 名單，剔除中宮選項)
+        // 1. 宮位與甲藏
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
                 <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + selectPalaces.map(x=>`<option>${x}</option>`).join('') + `</select>
@@ -258,22 +255,30 @@ function copyPanelData(targetIdx, sourceIdx) {
         if(tRadio) { tRadio.checked = true; tRadio.dataset.checked = "true"; }
     }
 
-    // 複製天盤天干與個別刑墓狀態
+    // 安全修復：複製天盤天干與個別刑墓狀態
     targetPanel.querySelectorAll('.tian-gan').forEach((cb, i) => {
         const srcCb = sourcePanel.querySelectorAll('.tian-gan')[i];
         cb.checked = srcCb.checked;
         const val = cb.value;
-        targetPanel.querySelector(`.tian-status-jx[data-gan="${val}"]`).checked = sourcePanel.querySelector(`.tian-status-jx[data-gan="${val}"]`).checked;
-        targetPanel.querySelector(`.tian-status-rm[data-gan="${val}"]`).checked = sourcePanel.querySelector(`.tian-status-rm[data-gan="${val}"]`).checked;
+        const srcJx = sourcePanel.querySelector(`.tian-status-jx[data-gan="${val}"]`);
+        const srcRm = sourcePanel.querySelector(`.tian-status-rm[data-gan="${val}"]`);
+        const tgtJx = targetPanel.querySelector(`.tian-status-jx[data-gan="${val}"]`);
+        const tgtRm = targetPanel.querySelector(`.tian-status-rm[data-gan="${val}"]`);
+        if(srcJx && tgtJx) tgtJx.checked = srcJx.checked;
+        if(srcRm && tgtRm) tgtRm.checked = srcRm.checked;
     });
 
-    // 複製地盤天干與個別刑墓狀態
+    // 安全修復：複製地盤天干與個別刑墓狀態
     targetPanel.querySelectorAll('.di-gan').forEach((cb, i) => {
         const srcCb = sourcePanel.querySelectorAll('.di-gan')[i];
         cb.checked = srcCb.checked;
         const val = cb.value;
-        targetPanel.querySelector(`.di-status-jx[data-gan="${val}"]`).checked = sourcePanel.querySelector(`.di-status-jx[data-gan="${val}"]`).checked;
-        targetPanel.querySelector(`.di-status-rm[data-gan="${val}"]`).checked = sourcePanel.querySelector(`.di-status-rm[data-gan="${val}"]`).checked;
+        const srcJx = sourcePanel.querySelector(`.di-status-jx[data-gan="${val}"]`);
+        const srcRm = sourcePanel.querySelector(`.di-status-rm[data-gan="${val}"]`);
+        const tgtJx = targetPanel.querySelector(`.di-status-jx[data-gan="${val}"]`);
+        const tgtRm = targetPanel.querySelector(`.di-status-rm[data-gan="${val}"]`);
+        if(srcJx && tgtJx) tgtJx.checked = srcJx.checked;
+        if(srcRm && tgtRm) tgtRm.checked = srcRm.checked;
     });
 
     // 複製九星
@@ -344,13 +349,14 @@ function getOutputString() {
         let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`);
         if(tGod) lines.push(`天盤八神 : ${tGod.value}`);
 
-        // 精準導出天盤干與其獨立狀態
         let tGansArr = [];
         p.querySelectorAll('.tian-gan:checked').forEach(cb => {
             let g = cb.value;
             let tHarms = [];
-            if(p.querySelector(`.tian-status-jx[data-gan="${g}"]:checked`)) tHarms.push("擊刑");
-            if(p.querySelector(`.tian-status-rm[data-gan="${g}"]:checked`)) tHarms.push("入墓");
+            let jxBox = p.querySelector(`.tian-status-jx[data-gan="${g}"]`);
+            let rmBox = p.querySelector(`.tian-status-rm[data-gan="${g}"]`);
+            if(jxBox && jxBox.checked) tHarms.push("擊刑");
+            if(rmBox && rmBox.checked) tHarms.push("入墓");
             let harmStr = tHarms.length ? `(${tHarms.join(",")})` : "";
             tGansArr.push(g + harmStr);
         });
@@ -362,13 +368,14 @@ function getOutputString() {
         if(tGansArr.length) lines.push(`天盤 : ${tGansArr.join("+")}${jiaStr}`);
         else if(jiaVal) lines.push(`天盤甲藏 : ${jiaStr.trim()}`);
 
-        // 精準導出地盤干與其獨立狀態
         let dGansArr = [];
         p.querySelectorAll('.di-gan:checked').forEach(cb => {
             let g = cb.value;
             let dHarms = [];
-            if(p.querySelector(`.di-status-jx[data-gan="${g}"]:checked`)) dHarms.push("擊刑");
-            if(p.querySelector(`.di-status-rm[data-gan="${g}"]:checked`)) dHarms.push("入墓");
+            let jxBox = p.querySelector(`.di-status-jx[data-gan="${g}"]`);
+            let rmBox = p.querySelector(`.di-status-rm[data-gan="${g}"]`);
+            if(jxBox && jxBox.checked) dHarms.push("擊刑");
+            if(rmBox && rmBox.checked) dHarms.push("入墓");
             let harmStr = dHarms.length ? `(${dHarms.join(",")})` : "";
             dGansArr.push(g + harmStr);
         });
@@ -404,7 +411,6 @@ function updatePreview() {
         previewBox.value = getOutputString();
     }
 
-    // 清空九宮格中所有格子（這裡必須遍歷全名單 visualPalaces 包含中宮）
     visualPalaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
         if(cell) { cell.querySelector('.cell-content').innerHTML = ""; }
@@ -429,13 +435,14 @@ function updatePreview() {
                 door += `<span style="color:#ff3b30; font-size:10px;">(迫)</span>`;
             }
 
-            // 九宮格天盤干視覺渲染
             let tGansVisual = [];
             p.querySelectorAll('.tian-gan:checked').forEach(cb => {
                 let g = cb.value;
                 let hArr = [];
-                if(p.querySelector(`.tian-status-jx[data-gan="${g}"]:checked`)) hArr.push("刑");
-                if(p.querySelector(`.tian-status-rm[data-gan="${g}"]:checked`)) hArr.push("墓");
+                let jxBox = p.querySelector(`.tian-status-jx[data-gan="${g}"]`);
+                let rmBox = p.querySelector(`.tian-status-rm[data-gan="${g}"]`);
+                if(jxBox && jxBox.checked) hArr.push("刑");
+                if(rmBox && rmBox.checked) hArr.push("墓");
                 let hStr = hArr.length ? `(${hArr.join(".")})` : "";
                 tGansVisual.push(g + hStr);
             });
@@ -447,13 +454,14 @@ function updatePreview() {
                 tGansStr = `首:${jiaText}`;
             }
 
-            // 九宮格地盤干視覺渲染
             let dGansVisual = [];
             p.querySelectorAll('.di-gan:checked').forEach(cb => {
                 let g = cb.value;
                 let hArr = [];
-                if(p.querySelector(`.di-status-jx[data-gan="${g}"]:checked`)) hArr.push("刑");
-                if(p.querySelector(`.di-status-rm[data-gan="${g}"]:checked`)) hArr.push("墓");
+                let jxBox = p.querySelector(`.di-status-jx[data-gan="${g}"]`);
+                let rmBox = p.querySelector(`.di-status-rm[data-gan="${g}"]`);
+                if(jxBox && jxBox.checked) hArr.push("刑");
+                if(rmBox && rmBox.checked) hArr.push("墓");
                 let hStr = hArr.length ? `(${hArr.join(".")})` : "";
                 dGansVisual.push(g + hStr);
             });
