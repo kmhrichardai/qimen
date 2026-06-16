@@ -6,7 +6,7 @@
 <title>奇門遁甲 - AI問事 (九宮全資訊版)</title>
 <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; padding: 15px; margin: 0; padding-bottom: 120px; color: #1c1c1e; }
-    h2 { font-size: 20px; color: #000; }
+    h2 { font-size: 20px; color: #000; margin-top: 5px; }
     .top-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); }
     select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fff; margin-top: 8px; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
     .panel { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); }
@@ -23,8 +23,11 @@
     .grid-4 { grid-template-columns: repeat(4, 1fr); }
     .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; text-align: center; }
     input[type="checkbox"], input[type="radio"] { display: none; }
-    input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: #007aff; color: #fff; border-color: #007aff; font-weight: bold; }
+    
+    /* 修正被選取時字體被遮住的問題，加入 color: #fff !important; 強制白字 */
+    input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: #007aff; color: #fff !important; border-color: #007aff; font-weight: bold; }
     input[type="checkbox"]:disabled + .btn-check { opacity: 0.5; }
+    
     .harm-group { display: flex; gap: 10px; margin-top: 8px; }
     .harm-group label { flex: 1; }
     .select-container { position: relative; }
@@ -35,19 +38,19 @@
     
     /* 九宮格主體優化 */
     .jiugong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #c7c7cc; border: 2px solid #8e8e93; border-radius: 8px; margin-top: 10px; align-items: stretch; }
-    .jiugong-cell { background: #fff; min-height: 120px; height: 100%; padding: 6px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-sizing: border-box; overflow: hidden; }
+    .jiugong-cell { background: #fff; min-height: 130px; height: 100%; padding: 6px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-sizing: border-box; overflow: hidden; }
     .cell-title { font-size: 12px; font-weight: bold; color: #8e8e93; border-bottom: 1px dashed #e5e5ea; width: 100%; text-align: center; padding-bottom: 3px; margin-bottom: 5px; background: #f2f2f7; flex-shrink: 0; }
     .cell-content { font-size: 11px; width: 100%; text-align: left; line-height: 1.4; color: #1c1c1e; word-wrap: break-word; flex-grow: 1; }
     .cell-god-tag { background: #e1f5fe; color: #0288d1; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 2px; border: 1px solid #b3e5fc; }
 
-    /* 將 JS 的 inline-style 抽成 class，方便 RWD 管理 */
-    .god-info-block { margin-bottom: 6px; border-left: 3px solid #007aff; padding-left: 4px; padding-bottom: 4px; border-bottom: 1px solid #f2f2f7; }
+    .god-info-block { margin-bottom: 6px; border-left: 3px solid #007aff; padding-left: 4px; padding-bottom: 4px; border-bottom: 1px solid #e5e5ea; }
+    .god-info-block:last-child { border-bottom: none; margin-bottom: 0; }
     .god-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 11px; }
     .god-info-gan { margin-top: 2px; font-size: 11px; }
 
-    /* --- 手機端（小螢幕）適應度優化 --- */
+    /* --- 手機端適應度優化 --- */
     @media (max-width: 400px) {
-        .jiugong-cell { min-height: 100px; padding: 4px; }
+        .jiugong-cell { min-height: 110px; padding: 4px; }
         .cell-title { font-size: 11px; padding-bottom: 2px; margin-bottom: 3px; }
         .cell-content { font-size: 10px; line-height: 1.25; }
         .cell-god-tag { font-size: 10px; padding: 1px 2px; margin-bottom: 1px; }
@@ -71,7 +74,8 @@
 <body>
 
 <div class="top-bar">
-    <label style="font-weight:bold; color:#007aff;">1. 設定排盤基礎 (用於精準全自動算暗干)：</label>
+    <h2>奇門遁甲 - AI問事輸入板</h2>
+    <label style="font-weight:bold; color:#007aff;">1. 設定排盤基礎 (用於全自動算暗干)：</label>
     <div style="display:flex; gap:10px; margin-top:8px; margin-bottom: 15px;">
         <div class="select-container" style="flex:1;">
             <select id="dunType" onchange="autoUpdateAllAnGans(); updatePreview()">
@@ -178,7 +182,6 @@ function getGridChangshengStr(cs) {
     return `.${cs.substring(0,1)}`;
 }
 
-// 動態顯示/隱藏面板內的暗干區塊
 function toggleAnganDisplay() {
     const show = document.getElementById("toggleAngan").checked;
     document.querySelectorAll('.angan-group').forEach(el => {
@@ -303,20 +306,22 @@ function renderPanels() {
 
         html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>`; });
+        // 已修正為綠色 #27ae60
         html += `</div><div class="grid-4" style="margin-top:8px;">
-            <label><input type="checkbox" class="tian-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#c0392b;">首干[擊刑]</div></label>
-            <label><input type="checkbox" class="tian-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#c0392b;">首干[入墓]</div></label>
-            <label><input type="checkbox" class="tian-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[擊刑]</div></label>
-            <label><input type="checkbox" class="tian-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[入墓]</div></label>
+            <label><input type="checkbox" class="tian-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[擊刑]</div></label>
+            <label><input type="checkbox" class="tian-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[入墓]</div></label>
+            <label><input type="checkbox" class="tian-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[擊刑]</div></label>
+            <label><input type="checkbox" class="tian-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[入墓]</div></label>
         </div></div>`;
 
         html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>`; });
+        // 已修正為綠色 #27ae60
         html += `</div><div class="grid-4" style="margin-top:8px;">
-            <label><input type="checkbox" class="di-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#c0392b;">首干[擊刑]</div></label>
-            <label><input type="checkbox" class="di-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#c0392b;">首干[入墓]</div></label>
-            <label><input type="checkbox" class="di-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[擊刑]</div></label>
-            <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[入墓]</div></label>
+            <label><input type="checkbox" class="di-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[擊刑]</div></label>
+            <label><input type="checkbox" class="di-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[入墓]</div></label>
+            <label><input type="checkbox" class="di-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[擊刑]</div></label>
+            <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[入墓]</div></label>
         </div></div>`;
 
         html += `<div class="form-group angan-group"><label class="title" style="color:#007aff;">5. 暗干 (選好局數與八門即自動計算，亦可手動改)</label><div class="grid-5">`;
@@ -439,7 +444,9 @@ function copyPanelData(targetIdx, sourceIdx) {
 function checkLimit(cb, className) {
     let panel = cb.closest('.panel');
     let checked = panel.querySelectorAll(`.${className}:checked`);
-    if(checked.length > 2) cb.checked = false;
+    if(checked.length > 2) {
+        cb.checked = false;
+    }
     updatePreview();
 }
 
@@ -453,8 +460,11 @@ function clearAllSelections() {
 function getOutputString() {
     let output = [];
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
-    // 增加 AI 提示詞的開頭 (可自由移除，但能提升送去 AI 的精準度)
-    output.push(`問事主題 : ${topicText}\n==============================\n`);
+    let dunText = document.getElementById("dunType").options[document.getElementById("dunType").selectedIndex].text;
+    let juText = document.getElementById("juNum").options[document.getElementById("juNum").selectedIndex].text;
+    
+    output.push(`問事主題 : ${topicText}`);
+    output.push(`排盤基礎 : ${dunText}${juText}\n==============================\n`);
 
     let showCS = document.getElementById("toggleChangsheng").checked;
     let showAG = document.getElementById("toggleAngan").checked;
@@ -550,7 +560,7 @@ function getOutputString() {
         let specs = [];
         if(p.querySelector('.spec-kw') && p.querySelector('.spec-kw').checked) specs.push("空亡");
         if(p.querySelector('.spec-mx') && p.querySelector('.spec-mx').checked) specs.push("馬星");
-        if(specs.length) lines.push(`\n${specs.join(" / ")}`);
+        if(specs.length) lines.push(`\n狀態 : ${specs.join(" / ")}`);
 
         output.push(lines.join("\n"));
         output.push("\n--------------------\n");
@@ -660,7 +670,6 @@ function updatePreview() {
             if(p.querySelector('.spec-mx') && p.querySelector('.spec-mx').checked) specArr.push("馬");
             let specStr = specArr.length ? `[${specArr.join(".")}]` : "";
 
-            /* 改用 CSS Class，不再依賴行內樣式，這樣能在 @media 媒體查詢中自動縮小字體 */
             let infoStr = `
             <div class="god-info-block">
                 <span class="cell-god-tag">${godShort}${specStr}</span><br>
@@ -694,6 +703,7 @@ function copyToClipboard() {
 
 function fallbackCopy(text) {
     let tempArea = document.createElement("textarea");
+    text = text.replace(/\n/g, '\r\n'); // 強化行動版換行相容性
     tempArea.value = text;
     tempArea.style.position = "absolute";
     tempArea.style.left = "-9999px";
