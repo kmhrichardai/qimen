@@ -110,9 +110,10 @@ const tiangan = ["乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const stars = ["天蓬星", "天芮禽星", "天沖星", "天輔星", "天心星", "天柱星", "天任星", "天英星"];
 const doors = ["休門", "生門", "傷門", "杜門", "景門", "死門", "驚門", "開門"];
 
-// 奇門天干標準排布路徑（戊己庚辛壬癸丁丙乙）用於計算相對距離
+// 奇門天干標準排布路徑，用於動態計算暗干偏移量
 const ganOrder = ["戊", "己", "庚", "辛", "壬", "癸", "丁", "丙", "乙"];
 
+// 12長生資料庫
 const changshengData = {
     "坎一宮(水)": { "甲":"沐浴", "乙":"病", "丙":"胎", "丁":"絕", "戊":"胎", "己":"絕", "庚":"死", "辛":"長生", "壬":"帝旺", "癸":"臨官" },
     "坤二宮(土)": { "甲":"墓", "乙":"衰", "丙":"病", "丁":"臨官", "戊":"病", "己":"臨官", "庚":"衰", "辛":"臨官", "壬":"墓", "癸":"養" },
@@ -129,12 +130,12 @@ function getChangsheng(palace, gan) {
     return changshengData[palace][gan] || "";
 }
 
-// 【全新核心函式】：動態計算暗干的核心邏輯（時干加值使門法）
+// 【修復的核心函式】：動態計算暗干
 function calculateAllAnGans() {
-    let anGanResult = {}; // 格式: { "坎一宮(水)": "辛", ... }
-    
-    // 1. 尋找「時干（事體結局）」的面板
+    let anGanResult = {};
     let shiPanel = null;
+    
+    // 1. 尋找「時干」面板作為運算基準
     let allPanels = document.querySelectorAll('#panelsContainer > .panel');
     allPanels.forEach(p => {
         if (p.dataset.godname && p.dataset.godname.includes("時干")) {
@@ -142,38 +143,27 @@ function calculateAllAnGans() {
         }
     });
     
-    // 如果使用者還沒生成時干面板，或者基礎條件不齊全，則無法推導
+    // 如果沒有找到時干面板，就無法推算
     if (!shiPanel) return anGanResult;
     
-    let shiIdx = shiPanel.id.split("_")[1];
-    let shiPalace = shiPanel.querySelector('.palace-sel').value; // 值使落宮
-    let shiGanRadio = shiPanel.querySelector(`input[name="tg_${shiIdx}"]:checked`); // 這裡當作時干（天盤八神下方的天干勾選）
-    
-    // 如果天盤沒有選單選天干，則改抓天盤勾選的第一個天干
-    let shiGan = "";
+    // 2. 抓取時干面板的「天盤首干」與「地盤首干」
     let checkedTianGans = shiPanel.querySelectorAll('.tian-gan:checked');
-    if (checkedTianGans.length > 0) {
-        shiGan = checkedTianGans[0].value;
-    }
-    
-    let shiDiGan = "";
     let checkedDiGans = shiPanel.querySelectorAll('.di-gan:checked');
-    if (checkedDiGans.length > 0) {
-        shiDiGan = checkedDiGans[0].value;
-    }
     
-    if (!shiPalace || !shiGan || !shiDiGan) return anGanResult;
+    // 必須天、地盤都勾選了，系統才有足夠資料計算
+    if (checkedTianGans.length === 0 || checkedDiGans.length === 0) return anGanResult;
     
-    // 2. 獲取值使落宮的地盤天干首干
-    let baseDiGan = shiDiGan;
+    let shiGan = checkedTianGans[0].value;
+    let baseDiGan = checkedDiGans[0].value;
+    
     let baseGanIdx = ganOrder.indexOf(baseDiGan);
     let shiGanIdx = ganOrder.indexOf(shiGan);
     if (baseGanIdx === -1 || shiGanIdx === -1) return anGanResult;
     
-    // 計算時干到值使地盤干的偏移步數 (Offset)
+    // 3. 計算位移差距
     let offset = (shiGanIdx - baseGanIdx + 9) % 9;
     
-    // 3. 遍歷目前所有已設定的面板，根據各宮的地盤天干，動態推算該宮暗干
+    // 4. 套用到所有用神面板，推導暗干
     allPanels.forEach(p => {
         let curPalace = p.querySelector('.palace-sel').value;
         let curDiGans = p.querySelectorAll('.di-gan:checked');
@@ -403,7 +393,7 @@ function getOutputString() {
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
     output.push(`問事主題 : ${topicText}\n==============================\n`);
 
-    // 動態取得當前全盤的暗干計算結果
+    // 取得當前自動算出的暗干
     let currentAnGans = calculateAllAnGans();
 
     document.querySelectorAll('.panel').forEach((p, idx) => {
@@ -432,6 +422,7 @@ function getOutputString() {
         if(p.querySelector('.tian-rm-2') && p.querySelector('.tian-rm-2').checked) tHarm2Arr.push("入墓");
         let tHarm2Str = tHarm2Arr.length ? `(${tHarm2Arr.join(",")})` : "";
 
+        // 將 12長生 加入天盤輸出
         let finalTGans = [];
         if (tGans.length > 0) {
             let cs1 = getChangsheng(curPalace, tGans[0]);
@@ -452,7 +443,7 @@ function getOutputString() {
             lines.push(`天盤甲藏 : ${jiaStr.trim()}${csJiaStr}${tHarm1Str}`);
         }
 
-        // 【自動生成暗干】：如果後台成功計算出該宮暗干，則自動插入文本
+        // 自動插入暗干文字
         if (currentAnGans[curPalace]) {
             lines.push(`暗干 : ${currentAnGans[curPalace]}`);
         }
@@ -601,12 +592,13 @@ function updatePreview() {
             }
             let dGansStr = dGansDisplay.join("+");
 
-            // 【九宮格同步預覽暗干】：若有暗干，用藍色小括號顯示在干的後方
+            // 九宮格同步顯示暗干
             let anGanStr = currentAnGans[pName] ? `<span style="color:#007aff; font-weight:bold;">(${currentAnGans[pName]})</span>` : "";
 
+            // 完全修正上一版導致當機的錯字（由 ${span 改為 <span）
             let gansDisplay = "";
             if (tGansStr || dGansStr) {
-                gansDisplay = `<span style="color:#ff3b30; font-weight:bold;">${tGansStr || '-'}</span>/${span style="color:#8e8e93;">${dGansStr || '-'}</span> ${anGanStr}`;
+                gansDisplay = `<span style="color:#ff3b30; font-weight:bold;">${tGansStr || '-'}</span>/<span style="color:#8e8e93;">${dGansStr || '-'}</span> ${anGanStr}`;
             } else if (anGanStr) {
                 gansDisplay = `暗:${anGanStr}`;
             }
