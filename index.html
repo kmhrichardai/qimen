@@ -33,11 +33,29 @@
     
     textarea#previewArea { width: 100%; height: 180px; padding: 12px; font-family: monospace; font-size: 14px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fafafa; color: #333; box-sizing: border-box; resize: none; margin-top: 8px; }
     
-    .jiugong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #c7c7cc; border: 2px solid #8e8e93; border-radius: 8px; overflow: hidden; margin-top: 10px; }
-    .jiugong-cell { background: #fff; min-height: 120px; padding: 6px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-sizing: border-box; }
-    .cell-title { font-size: 12px; font-weight: bold; color: #8e8e93; border-bottom: 1px dashed #e5e5ea; width: 100%; text-align: center; padding-bottom: 3px; margin-bottom: 5px; background: #f2f2f7; }
-    .cell-content { font-size: 11px; width: 100%; text-align: left; line-height: 1.4; color: #1c1c1e; }
+    /* 九宮格主體優化 */
+    .jiugong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #c7c7cc; border: 2px solid #8e8e93; border-radius: 8px; margin-top: 10px; align-items: stretch; }
+    .jiugong-cell { background: #fff; min-height: 120px; height: 100%; padding: 6px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-sizing: border-box; overflow: hidden; }
+    .cell-title { font-size: 12px; font-weight: bold; color: #8e8e93; border-bottom: 1px dashed #e5e5ea; width: 100%; text-align: center; padding-bottom: 3px; margin-bottom: 5px; background: #f2f2f7; flex-shrink: 0; }
+    .cell-content { font-size: 11px; width: 100%; text-align: left; line-height: 1.4; color: #1c1c1e; word-wrap: break-word; flex-grow: 1; }
     .cell-god-tag { background: #e1f5fe; color: #0288d1; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-weight: bold; display: inline-block; margin-bottom: 2px; border: 1px solid #b3e5fc; }
+
+    /* 將 JS 的 inline-style 抽成 class，方便 RWD 管理 */
+    .god-info-block { margin-bottom: 6px; border-left: 3px solid #007aff; padding-left: 4px; padding-bottom: 4px; border-bottom: 1px solid #f2f2f7; }
+    .god-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 11px; }
+    .god-info-gan { margin-top: 2px; font-size: 11px; }
+
+    /* --- 手機端（小螢幕）適應度優化 --- */
+    @media (max-width: 400px) {
+        .jiugong-cell { min-height: 100px; padding: 4px; }
+        .cell-title { font-size: 11px; padding-bottom: 2px; margin-bottom: 3px; }
+        .cell-content { font-size: 10px; line-height: 1.25; }
+        .cell-god-tag { font-size: 10px; padding: 1px 2px; margin-bottom: 1px; }
+        
+        .god-info-block { margin-bottom: 4px; padding-left: 3px; padding-bottom: 2px; }
+        .god-info-grid { font-size: 10px; gap: 1px; letter-spacing: -0.3px; }
+        .god-info-gan { font-size: 10px; margin-top: 1px; letter-spacing: -0.3px; }
+    }
 
     .inner-copy-btn { width: 100%; margin-top: 12px; background: #34c759; color: #fff; padding: 10px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .inner-copy-btn:active { background: #28a745; }
@@ -71,8 +89,14 @@
     </div>
     
     <label style="font-weight:bold;">2. 選擇問事主題：</label>
-    <div class="select-container">
+    <div class="select-container" style="margin-bottom: 15px;">
         <select id="topicSelect" onchange="renderPanels()"></select>
+    </div>
+
+    <label style="font-weight:bold; color:#ff9500;">3. 顯示進階資訊：</label>
+    <div class="harm-group" style="margin-top:8px;">
+        <label><input type="checkbox" id="toggleChangsheng" checked onchange="updatePreview()"><div class="btn-check">12長生標記</div></label>
+        <label><input type="checkbox" id="toggleAngan" checked onchange="toggleAnganDisplay(); updatePreview()"><div class="btn-check">暗干系統</div></label>
     </div>
 </div>
 
@@ -127,17 +151,16 @@ const tiangan = ["乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const stars = ["天蓬星", "天芮禽星", "天沖星", "天輔星", "天心星", "天柱星", "天任星", "天英星"];
 const doors = ["休門", "死門", "傷門", "杜門", "開門", "驚門", "生門", "景門"];
 
-// 奇門三奇六儀固定順序
 const ganOrder = ["戊", "己", "庚", "辛", "壬", "癸", "丁", "丙", "乙"];
 
 const changshengData = {
     "坎一宮(水)": { "甲":"沐浴", "乙":"病", "丙":"胎", "丁":"絕", "戊":"胎", "己":"絕", "庚":"死", "辛":"長生", "壬":"帝旺", "癸":"臨官" },
-    "坤二宮(土)": { "甲":"墓", "乙":"衰", "丙":"病", "丁":"臨官", "戊":"病", "己":"臨官", "庚":"衰", "辛":"臨官", "壬":"墓", "癸":"養" },
+    "坤二宮(土)": { "甲":"墓/絕", "乙":"養/胎", "丙":"衰/病", "丁":"冠帶/沐浴", "戊":"衰/病", "己":"冠帶/沐浴", "庚":"冠帶/臨官", "辛":"衰/帝旺", "壬":"養/長生", "癸":"墓/死" },
     "震三宮(木)": { "甲":"帝旺", "乙":"臨官", "丙":"沐浴", "丁":"病", "戊":"沐浴", "己":"病", "庚":"胎", "辛":"絕", "壬":"死", "癸":"長生" },
-    "巽四宮(木)": { "甲":"衰", "乙":"帝旺", "丙":"臨官", "丁":"死", "戊":"臨官", "己":"死", "庚":"墓", "辛":"胎", "壬":"絕", "癸":"沐浴" },
-    "乾六宮(金)": { "甲":"養", "乙":"墓", "丙":"墓", "丁":"養", "戊":"墓", "己":"養", "庚":"臨官", "辛":"帝旺", "壬":"長生", "癸":"衰" },
+    "巽四宮(木)": { "甲":"衰/病", "乙":"冠帶/沐浴", "丙":"冠帶/臨官", "丁":"衰/帝旺", "戊":"冠帶/臨官", "己":"衰/帝旺", "庚":"養/長生", "辛":"墓/死", "壬":"墓/絕", "癸":"養/胎" },
+    "乾六宮(金)": { "甲":"養/長生", "乙":"墓/死", "丙":"墓/絕", "丁":"養/胎", "戊":"墓/絕", "己":"養/胎", "庚":"衰/病", "辛":"冠帶/沐浴", "壬":"冠帶/臨官", "癸":"衰/帝旺" },
     "兌七宮(金)": { "甲":"胎", "乙":"絕", "丙":"死", "丁":"長生", "戊":"死", "己":"長生", "庚":"帝旺", "辛":"臨官", "壬":"沐浴", "癸":"病" },
-    "艮八宮(土)": { "甲":"冠帶", "乙":"養", "丙":"養", "丁":"墓", "戊":"養", "己":"墓", "庚":"墓", "辛":"養", "壬":"衰", "癸":"冠帶" },
+    "艮八宮(土)": { "甲":"冠帶/臨官", "乙":"衰/帝旺", "丙":"養/長生", "丁":"墓/死", "戊":"養/長生", "己":"墓/死", "庚":"墓/絕", "辛":"養/胎", "壬":"衰/病", "癸":"冠帶/沐浴" },
     "離九宮(火)": { "甲":"死", "乙":"長生", "丙":"帝旺", "丁":"臨官", "戊":"帝旺", "己":"臨官", "庚":"沐浴", "辛":"病", "壬":"胎", "癸":"絕" }
 };
 
@@ -146,7 +169,23 @@ function getChangsheng(palace, gan) {
     return changshengData[palace][gan] || "";
 }
 
-// 【終極解決方案】：暗干隨門飛演算法 (由八門與遁局自動精確推斷)
+function getGridChangshengStr(cs) {
+    if (!cs) return "";
+    let parts = cs.split('/');
+    if (parts.length > 1) {
+        return `.${parts[0].substring(0,1)}/${parts[1].substring(0,1)}`;
+    }
+    return `.${cs.substring(0,1)}`;
+}
+
+// 動態顯示/隱藏面板內的暗干區塊
+function toggleAnganDisplay() {
+    const show = document.getElementById("toggleAngan").checked;
+    document.querySelectorAll('.angan-group').forEach(el => {
+        el.style.display = show ? 'block' : 'none';
+    });
+}
+
 function autoCalcAnGan(idx) {
     let panel = document.getElementById("panel_" + idx);
     if (!panel) return;
@@ -154,17 +193,14 @@ function autoCalcAnGan(idx) {
     let dunType = document.getElementById("dunType").value;
     let juNum = parseInt(document.getElementById("juNum").value);
     
-    // 檢查有沒有選八門
     let doorRadio = panel.querySelector(`input[name="door_${idx}"]:checked`);
     if (!doorRadio) return;
     
     let door = doorRadio.value;
-    // 八門原始老家對應宮位
     const doorHome = { "休門": 1, "死門": 2, "傷門": 3, "杜門": 4, "開門": 6, "驚門": 7, "生門": 8, "景門": 9 };
     let homeP = doorHome[door];
     if (!homeP) return;
 
-    // 根據使用者的局數與遁型，背景瞬間建構底層九宮地盤
     let map = {};
     let currentPalace = juNum;
     for (let i = 0; i < 9; i++) {
@@ -176,10 +212,8 @@ function autoCalcAnGan(idx) {
         }
     }
     
-    // 該門老家對應的地盤干，就是隨門飛過來的「暗干」！
     let autoGan = map[homeP];
     
-    // 將結果自動勾選在該面板的暗干欄位上
     let anGanRadios = panel.querySelectorAll(`input[name="ag_${idx}"]`);
     anGanRadios.forEach(r => {
         if (r.value === autoGan) {
@@ -210,7 +244,6 @@ function handleRadioClick(radio) {
         radio.dataset.checked = "true";
     }
     
-    // 如果使用者點擊的是八門，立刻觸發該宮位的暗干全自動演算！
     if (radio.name.startsWith("door_") && radio.checked) {
         let idx = radio.name.split("_")[1];
         autoCalcAnGan(idx);
@@ -286,8 +319,7 @@ function renderPanels() {
             <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[入墓]</div></label>
         </div></div>`;
 
-        // 獨立為手動暗干欄位，給予最大彈性
-        html += `<div class="form-group"><label class="title" style="color:#007aff;">5. 暗干 (點選八門即自動計算，亦可手動改)</label><div class="grid-5">`;
+        html += `<div class="form-group angan-group"><label class="title" style="color:#007aff;">5. 暗干 (選好局數與八門即自動計算，亦可手動改)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="radio" class="an-gan-radio" name="ag_${idx}" value="${t}" onclick="handleRadioClick(this)"><div class="btn-check">${t}</div></label>`; });
         html += `</div></div>`;
 
@@ -312,15 +344,14 @@ function renderPanels() {
         container.appendChild(p);
     });
     
+    toggleAnganDisplay();
     updatePreview();
 }
 
 function copyPanelData(targetIdx, sourceIdx) {
     if (sourceIdx === "") return;
-    
     const sourcePanel = document.getElementById("panel_" + sourceIdx);
     const targetPanel = document.getElementById("panel_" + targetIdx);
-    
     if (!sourcePanel || !targetPanel) return;
 
     targetPanel.querySelector('.palace-sel').selectedIndex = sourcePanel.querySelector('.palace-sel').selectedIndex;
@@ -350,7 +381,6 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetPanel.querySelector('.di-jx-2').checked = sourcePanel.querySelector('.di-jx-2').checked;
     targetPanel.querySelector('.di-rm-2').checked = sourcePanel.querySelector('.di-rm-2').checked;
 
-    // 複製暗干
     const sourceAg = sourcePanel.querySelector(`input[name="ag_${sourceIdx}"]:checked`);
     const targetAgs = targetPanel.querySelectorAll(`input[name="ag_${targetIdx}"]`);
     targetAgs.forEach(r => r.dataset.checked = "false");
@@ -414,16 +444,20 @@ function checkLimit(cb, className) {
 }
 
 function clearAllSelections() {
-    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-    document.querySelectorAll('input[type="radio"]').forEach(rb => { rb.checked = false; rb.dataset.checked = "false"; });
-    document.querySelectorAll('.palace-sel, .jia-sel').forEach(sel => sel.selectedIndex = 0);
+    document.querySelectorAll('.panel input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.panel input[type="radio"]').forEach(rb => { rb.checked = false; rb.dataset.checked = "false"; });
+    document.querySelectorAll('.panel .palace-sel, .panel .jia-sel').forEach(sel => sel.selectedIndex = 0);
     updatePreview();
 }
 
 function getOutputString() {
     let output = [];
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
+    // 增加 AI 提示詞的開頭 (可自由移除，但能提升送去 AI 的精準度)
     output.push(`問事主題 : ${topicText}\n==============================\n`);
+
+    let showCS = document.getElementById("toggleChangsheng").checked;
+    let showAG = document.getElementById("toggleAngan").checked;
 
     document.querySelectorAll('.panel').forEach((p, idx) => {
         if(!p.dataset.godname) return;
@@ -453,11 +487,11 @@ function getOutputString() {
 
         let finalTGans = [];
         if (tGans.length > 0) {
-            let cs1 = getChangsheng(curPalace, tGans[0]);
+            let cs1 = showCS ? getChangsheng(curPalace, tGans[0]) : "";
             let cs1Str = cs1 ? `[${cs1}]` : "";
             finalTGans.push(tGans[0] + cs1Str + tHarm1Str);
             if (tGans.length > 1) {
-                let cs2 = getChangsheng(curPalace, tGans[1]);
+                let cs2 = showCS ? getChangsheng(curPalace, tGans[1]) : "";
                 let cs2Str = cs2 ? `[${cs2}]` : "";
                 finalTGans.push(tGans[1] + cs2Str + tHarm2Str);
             }
@@ -465,14 +499,13 @@ function getOutputString() {
         if (finalTGans.length) {
             lines.push(`天盤 : ${finalTGans.join(" + ")}${jiaStr}`);
         } else if (jiaVal) {
-            let csJia = getChangsheng(curPalace, jiaVal);
+            let csJia = showCS ? getChangsheng(curPalace, jiaVal) : "";
             let csJiaStr = csJia ? `[${csJia}]` : "";
             lines.push(`天盤甲藏 : ${jiaStr.trim()}${csJiaStr}${tHarm1Str}`);
         }
 
-        // 讀取已經算好(或手動改好)的暗干
         let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
-        if (anGanRadio) {
+        if (showAG && anGanRadio) {
             lines.push(`暗干 : ${anGanRadio.value}`);
         }
 
@@ -489,11 +522,11 @@ function getOutputString() {
 
         let finalDGans = [];
         if (dGans.length > 0) {
-            let dcs1 = getChangsheng(curPalace, dGans[0]);
+            let dcs1 = showCS ? getChangsheng(curPalace, dGans[0]) : "";
             let dcs1Str = dcs1 ? `[${dcs1}]` : "";
             finalDGans.push(dGans[0] + dcs1Str + dHarm1Str);
             if (dGans.length > 1) {
-                let dcs2 = getChangsheng(curPalace, dGans[1]);
+                let dcs2 = showCS ? getChangsheng(curPalace, dGans[1]) : "";
                 let dcs2Str = dcs2 ? `[${dcs2}]` : "";
                 finalDGans.push(dGans[1] + dcs2Str + dHarm2Str);
             }
@@ -535,6 +568,9 @@ function updatePreview() {
         if(cell) cell.querySelector('.cell-content').innerHTML = "";
     });
 
+    let showCS = document.getElementById("toggleChangsheng").checked;
+    let showAG = document.getElementById("toggleAngan").checked;
+
     document.querySelectorAll('#panelsContainer > .panel').forEach((p, idx) => {
         if(!p.dataset.godname) return;
         
@@ -566,12 +602,12 @@ function updatePreview() {
             
             let tGansDisplay = [];
             if(tGansArr.length > 0) {
-                let cs1 = getChangsheng(pName, tGansArr[0]);
-                let cs1Str = cs1 ? `.${cs1.substring(0,1)}` : "";
+                let cs1 = showCS ? getChangsheng(pName, tGansArr[0]) : "";
+                let cs1Str = getGridChangshengStr(cs1);
                 tGansDisplay.push(tGansArr[0] + cs1Str + tHarm1StrGrid);
                 if(tGansArr.length > 1) {
-                    let cs2 = getChangsheng(pName, tGansArr[1]);
-                    let cs2Str = cs2 ? `.${cs2.substring(0,1)}` : "";
+                    let cs2 = showCS ? getChangsheng(pName, tGansArr[1]) : "";
+                    let cs2Str = getGridChangshengStr(cs2);
                     tGansDisplay.push(tGansArr[1] + cs2Str + tHarm2StrGrid);
                 }
             }
@@ -580,8 +616,8 @@ function updatePreview() {
             let jiaVal = p.querySelector('.jia-sel').value;
             if(!tGansStr && jiaVal) {
                 let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text.split(" ")[0];
-                let csJia = getChangsheng(pName, jiaVal);
-                let csJiaStr = csJia ? `.${csJia.substring(0,1)}` : "";
+                let csJia = showCS ? getChangsheng(pName, jiaVal) : "";
+                let csJiaStr = getGridChangshengStr(csJia);
                 tGansStr = `首:${jiaText}${csJiaStr}${tHarm1StrGrid}`;
             }
 
@@ -598,20 +634,19 @@ function updatePreview() {
             
             let dGansDisplay = [];
             if(dGansArr.length > 0) {
-                let dcs1 = getChangsheng(pName, dGansArr[0]);
-                let dcs1Str = dcs1 ? `.${dcs1.substring(0,1)}` : "";
+                let dcs1 = showCS ? getChangsheng(pName, dGansArr[0]) : "";
+                let dcs1Str = getGridChangshengStr(dcs1);
                 dGansDisplay.push(dGansArr[0] + dcs1Str + dHarm1StrGrid);
                 if(dGansArr.length > 1) {
-                    let dcs2 = getChangsheng(pName, dGansArr[1]);
-                    let dcs2Str = dcs2 ? `.${dcs2.substring(0,1)}` : "";
+                    let dcs2 = showCS ? getChangsheng(pName, dGansArr[1]) : "";
+                    let dcs2Str = getGridChangshengStr(dcs2);
                     dGansDisplay.push(dGansArr[1] + dcs2Str + dHarm2StrGrid);
                 }
             }
             let dGansStr = dGansDisplay.join("+");
 
-            // 同步讀取暗干設定來顯示在格子中
             let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
-            let anGanStr = anGanRadio ? `<span style="color:#007aff; font-weight:bold;">(${anGanRadio.value})</span>` : "";
+            let anGanStr = (showAG && anGanRadio) ? `<span style="color:#007aff; font-weight:bold;">(${anGanRadio.value})</span>` : "";
 
             let gansDisplay = "";
             if (tGansStr || dGansStr) {
@@ -625,16 +660,17 @@ function updatePreview() {
             if(p.querySelector('.spec-mx') && p.querySelector('.spec-mx').checked) specArr.push("馬");
             let specStr = specArr.length ? `[${specArr.join(".")}]` : "";
 
+            /* 改用 CSS Class，不再依賴行內樣式，這樣能在 @media 媒體查詢中自動縮小字體 */
             let infoStr = `
-            <div style="margin-bottom:8px; border-left:3px solid #007aff; padding-left:5px; padding-bottom:2px; border-bottom:1px solid #f2f2f7;">
+            <div class="god-info-block">
                 <span class="cell-god-tag">${godShort}${specStr}</span><br>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px; font-size:11px;">
+                <div class="god-info-grid">
                     <div>神: <span style="color:#ff9500; font-weight:bold;">${tGod || '-'}</span></div>
                     <div>地神: <span style="color:#8e8e93;">${dGod || '-'}</span></div>
                     <div>星: <span>${star || '-'}</span></div>
                     <div>門: <span style="color:#34c759; font-weight:bold;">${door || '-'}</span></div>
                 </div>
-                <div style="margin-top:2px;">干: ${gansDisplay}</div>
+                <div class="god-info-gan">干: ${gansDisplay}</div>
             </div>`;
             
             contentDiv.innerHTML += infoStr;
