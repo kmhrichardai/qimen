@@ -22,22 +22,32 @@
     .grid-5 { grid-template-columns: repeat(5, 1fr); }
     .grid-4 { grid-template-columns: repeat(4, 1fr); }
     
-    /* 基本按鈕樣式 */
-    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; flex-direction: column; }
+    /* 基礎按鈕樣式 */
+    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; }
     input[type="checkbox"], input[type="radio"] { display: none; }
     input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: #007aff; color: #fff; border-color: #007aff; font-weight: bold; }
     input[type="checkbox"]:disabled + .btn-check { opacity: 0.5; }
     
-    /* 天干特製細選控制區 */
-    .gan-control-box { display: flex; flex-direction: column; align-items: center; background: #fff; border: 1px solid #d1d1d6; border-radius: 8px; padding: 6px; box-sizing: border-box; }
-    .gan-main-label { width: 100%; }
-    .gan-sub-ops { display: none; width: 100%; margin-top: 5px; border-top: 1px dashed #c7c7cc; padding-top: 5px; justify-content: space-around; gap: 4px; }
-    /* 當天干被選中時，動態顯示入墓擊刑選框 */
-    input[type="checkbox"].tian-gan:checked ~ .gan-sub-ops,
-    input[type="checkbox"].di-gan:checked ~ .gan-sub-ops { display: flex; }
+    /* 改進版：天干複合控制器外包裝（確保高度自由展開不被切斷） */
+    .gan-control-wrapper { display: flex; flex-direction: column; background: #fff; border: 1px solid #d1d1d6; border-radius: 8px; overflow: hidden; padding: 2px; box-sizing: border-box; }
+    .gan-control-wrapper .btn-check { border: none; background: transparent; padding: 8px 0; font-size: 16px; width: 100%; }
     
-    .sub-btn { font-size: 10px; padding: 2px 4px; background: #e5e5ea; color: #333; border-radius: 4px; border: 1px solid #c7c7cc; user-select: none; flex: 1; text-align: center; }
-    input[type="checkbox"].sub-cb:checked + .sub-btn { background: #ff3b30; color: #fff; border-color: #ff3b30; font-weight: bold; }
+    /* 當大天干被勾選時的包裝盒高亮狀態 */
+    .gan-control-wrapper:has(input[type="checkbox"].gan-main-cb:checked) { background: #007aff; border-color: #007aff; }
+    .gan-control-wrapper:has(input[type="checkbox"].gan-main-cb:checked) .btn-check { color: #fff; font-weight: bold; }
+    
+    /* 特製微型狀態按鈕列 */
+    .gan-status-bar { display: flex; justify-content: space-between; padding: 0 4px 4px 4px; gap: 3px; background: transparent; }
+    
+    /* 預設隱藏，只有天干被選中時才顯示「刑、墓」控制按鈕 */
+    .gan-status-bar { opacity: 0; pointer-events: none; transition: 0.1s; }
+    .gan-control-wrapper:has(input[type="checkbox"].gan-main-cb:checked) .gan-status-bar { opacity: 1; pointer-events: auto; }
+    
+    .status-label { flex: 1; display: block; }
+    .status-btn { font-size: 9px; text-align: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); padding: 1px 0; border-radius: 4px; font-weight: normal; user-select: none; }
+    
+    /* 微型按鈕選中時的狀態 */
+    input[type="checkbox"].status-cb:checked + .status-btn { background: #ff3b30; color: #fff; border-color: #ff3b30; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
     .harm-group { display: flex; gap: 10px; margin-top: 8px; }
     .harm-group label { flex: 1; }
@@ -80,7 +90,7 @@
     <div class="jiugong-grid">
         <div class="jiugong-cell" id="cell_巽四宮(木)"><div class="cell-title">巽四宮(木)</div><div class="cell-content"></div></div>
         <div class="jiugong-cell" id="cell_離九宮(火)"><div class="cell-title">離九宮(火)</div><div class="cell-content"></div></div>
-        <div class="jiugong-cell" id="cell_坤二宮(土)"><div class="cell-title">坤二宮(土)</div><div class="cell-content"></div></div>
+        <div class="jiugong-cell" id="cell_鐵二宮(土)" style="display:none;"></div> <div class="jiugong-cell" id="cell_坤二宮(土)"><div class="cell-title">坤二宮(土)</div><div class="cell-content"></div></div>
         
         <div class="jiugong-cell" id="cell_震三宮(木)"><div class="cell-title">震三宮(木)</div><div class="cell-content"></div></div>
         <div class="jiugong-cell" id="cell_陰盤(無中)"><div class="cell-title">陰盤(無中)</div><div class="cell-content"></div></div>
@@ -173,35 +183,35 @@ function renderPanels() {
         gods.forEach(g => { html += `<label><input type="radio" name="tg_${idx}" value="${g}" onclick="handleRadioClick(this)"><div class="btn-check">${g}</div></label>`; });
         html += `</div></div>`;
 
-        // 3. 天盤天干 (自由配對 擊刑/入墓 版)
-        html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項，選中可點選狀態)</label><div class="grid-5">`;
+        // 3. 天盤天干 (微型化按鈕嵌合版)
+        html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項，選中後按鈕內顯[刑/墓])</label><div class="grid-5">`;
         tiangan.forEach(t => { 
             html += `
-            <div class="gan-control-box">
-                <label class="gan-main-label">
-                    <input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')">
+            <div class="gan-control-wrapper">
+                <label style="width:100%; display:block;">
+                    <input type="checkbox" class="tian-gan gan-main-cb" value="${t}" onchange="checkLimit(this, 'tian-gan')">
                     <div class="btn-check">${t}</div>
                 </label>
-                <div class="gan-sub-ops">
-                    <label><input type="checkbox" class="sub-cb tian-jx-${t}" value="擊刑" onchange="updatePreview()"><div class="sub-btn">刑</div></label>
-                    <label><input type="checkbox" class="sub-cb tian-rm-${t}" value="入墓" onchange="updatePreview()"><div class="sub-btn">墓</div></label>
+                <div class="gan-status-bar">
+                    <label class="status-label"><input type="checkbox" class="status-cb tian-jx-${t}" value="擊刑" onchange="updatePreview()"><div class="status-btn">刑</div></label>
+                    <label class="status-label"><input type="checkbox" class="status-cb tian-rm-${t}" value="入墓" onchange="updatePreview()"><div class="status-btn">墓</div></label>
                 </div>
             </div>`;
         });
         html += `</div></div>`;
 
-        // 4. 地盤天干 (自由配對 擊刑/入墓 版)
-        html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項，選中可點選狀態)</label><div class="grid-5">`;
+        // 4. 地盤天干
+        html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項，選中後按鈕內顯[刑/墓])</label><div class="grid-5">`;
         tiangan.forEach(t => { 
             html += `
-            <div class="gan-control-box">
-                <label class="gan-main-label">
-                    <input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')">
+            <div class="gan-control-wrapper">
+                <label style="width:100%; display:block;">
+                    <input type="checkbox" class="di-gan gan-main-cb" value="${t}" onchange="checkLimit(this, 'di-gan')">
                     <div class="btn-check">${t}</div>
                 </label>
-                <div class="gan-sub-ops">
-                    <label><input type="checkbox" class="sub-cb di-jx-${t}" value="擊刑" onchange="updatePreview()"><div class="sub-btn">刑</div></label>
-                    <label><input type="checkbox" class="sub-cb di-rm-${t}" value="入墓" onchange="updatePreview()"><div class="sub-btn">墓</div></label>
+                <div class="gan-status-bar">
+                    <label class="status-label"><input type="checkbox" class="status-cb di-jx-${t}" value="擊刑" onchange="updatePreview()"><div class="status-btn">刑</div></label>
+                    <label class="status-label"><input type="checkbox" class="status-cb di-rm-${t}" value="入墓" onchange="updatePreview()"><div class="status-btn">墓</div></label>
                 </div>
             </div>`;
         });
@@ -259,7 +269,6 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetPanel.querySelector('.palace-sel').selectedIndex = sourcePanel.querySelector('.palace-sel').selectedIndex;
     targetPanel.querySelector('.jia-sel').selectedIndex = sourcePanel.querySelector('.jia-sel').selectedIndex;
 
-    // 複製天盤八神
     const sourceTg = sourcePanel.querySelector(`input[name="tg_${sourceIdx}"]:checked`);
     const targetTgs = targetPanel.querySelectorAll(`input[name="tg_${targetIdx}"]`);
     targetTgs.forEach(r => r.dataset.checked = "false");
@@ -272,7 +281,6 @@ function copyPanelData(targetIdx, sourceIdx) {
         if (checkedTg) checkedTg.checked = false;
     }
 
-    // 複製天盤天干及其附屬狀態
     tiangan.forEach(t => {
         const sCb = sourcePanel.querySelector(`.tian-gan[value="${t}"]`);
         const tCb = targetPanel.querySelector(`.tian-gan[value="${t}"]`);
@@ -281,7 +289,6 @@ function copyPanelData(targetIdx, sourceIdx) {
         targetPanel.querySelector(`.tian-rm-${t}`).checked = sourcePanel.querySelector(`.tian-rm-${t}`).checked;
     });
 
-    // 複製地盤天干及其附屬狀態
     tiangan.forEach(t => {
         const sCb = sourcePanel.querySelector(`.di-gan[value="${t}"]`);
         const tCb = targetPanel.querySelector(`.di-gan[value="${t}"]`);
@@ -290,7 +297,6 @@ function copyPanelData(targetIdx, sourceIdx) {
         targetPanel.querySelector(`.di-rm-${t}`).checked = sourcePanel.querySelector(`.di-rm-${t}`).checked;
     });
 
-    // 複製九星
     const sourceStar = sourcePanel.querySelector(`input[name="star_${sourceIdx}"]:checked`);
     const targetStars = targetPanel.querySelectorAll(`input[name="star_${targetIdx}"]`);
     targetStars.forEach(r => r.dataset.checked = "false");
@@ -303,7 +309,6 @@ function copyPanelData(targetIdx, sourceIdx) {
         if (checkedStar) checkedStar.checked = false;
     }
 
-    // 複製八門
     const sourceDoor = sourcePanel.querySelector(`input[name="door_${sourceIdx}"]:checked`);
     const targetDoors = targetPanel.querySelectorAll(`input[name="door_${targetIdx}"]`);
     targetDoors.forEach(r => r.dataset.checked = "false");
@@ -317,7 +322,6 @@ function copyPanelData(targetIdx, sourceIdx) {
     }
     targetPanel.querySelector('.door-mp').checked = sourcePanel.querySelector('.door-mp').checked;
 
-    // 複製地盤八神
     const sourceDg = sourcePanel.querySelector(`input[name="dg_${sourceIdx}"]:checked`);
     const targetDgs = targetPanel.querySelectorAll(`input[name="dg_${targetIdx}"]`);
     targetDgs.forEach(r => r.dataset.checked = "false");
@@ -341,7 +345,6 @@ function checkLimit(cb, className) {
     let checked = panel.querySelectorAll(`.${className}:checked`);
     if(checked.length > 2) {
         cb.checked = false;
-        // 如果被強制取消勾選，一併把底下的刑/墓清空
         let gan = cb.value;
         let suffix = className === 'tian-gan' ? 'tian' : 'di';
         panel.querySelector(`.${suffix}-jx-${gan}`).checked = false;
@@ -375,7 +378,6 @@ function getOutputString() {
         let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`);
         if(tGod) lines.push(`天盤八神 : ${tGod.value}`);
 
-        // 計算天盤天干字串
         let tGans = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x => x.value);
         let jiaVal = p.querySelector('.jia-sel').value;
         let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text;
@@ -393,7 +395,6 @@ function getOutputString() {
         if(tGansFormed.length) lines.push(`天盤 : ${tGansFormed.join(" + ")}${jiaStr}`);
         else if(jiaVal) lines.push(`天盤甲藏 : ${jiaStr.trim()}`);
 
-        // 計算地盤天干字串
         let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x => x.value);
         let dGansFormed = [];
         dGans.forEach(t => {
@@ -461,7 +462,6 @@ function updatePreview() {
                 door += `<span style="color:#ff3b30; font-size:10px;">(迫)</span>`;
             }
 
-            // 天盤九宮格簡短輸出渲染
             let tGansArr = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
             let tGansStrParts = [];
             tGansArr.forEach(t => {
@@ -478,7 +478,6 @@ function updatePreview() {
                 tGansStr = `首:${jiaText}`;
             }
 
-            // 地盤九宮格簡短輸出渲染
             let dGansArr = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
             let dGansStrParts = [];
             dGansArr.forEach(t => {
