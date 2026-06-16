@@ -101,9 +101,9 @@ const topics = {
     "出行尋物 (綜合)": ["日干 (求測者)", "時干 (目的地/失物)", "六合 (方向/失蹤者)", "傷門 (交通車輛)"]
 };
 
-// 【優化】將用於下拉選單的八個實體宮位，與保持九宮格結構的九宮分開定義
-const selectPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
-const gridPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
+// 區分「下拉選單專用宮位」與「九宮格重置專用宮位」
+const dropdownPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
+const allPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
 
 const jiaMap = {"無": "", "子 (戊)": "戊", "戌 (己)": "己", "申 (庚)": "庚", "午 (辛)": "辛", "辰 (壬)": "壬", "寅 (癸)": "癸"};
 const gods = ["值符", "騰蛇", "太陰", "六合", "白虎", "玄武", "九地", "九天"];
@@ -149,10 +149,10 @@ function renderPanels() {
             </div>
         </div>`;
         
-        // 【修正】這裡改用 selectPalaces 進行 map，下拉選單徹底移除「陰盤(無中)」
+        // 這裡改用 dropdownPalaces，不包含陰盤(無中)
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
-                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + selectPalaces.map(x=>`<option>${x}</option>`).join('') + `</select>
+                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + dropdownPalaces.map(x=>`<option>${x}</option>`).join('') + `</select>
                 <select class="jia-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + Object.keys(jiaMap).map(x=>`<option value="${jiaMap[x]}">${x}</option>`).join('') + `</select>
             </div>
         </div>`;
@@ -161,7 +161,6 @@ function renderPanels() {
         gods.forEach(g => { html += `<label><input type="radio" name="tg_${idx}" value="${g}" onclick="handleRadioClick(this)"><div class="btn-check">${g}</div></label>`; });
         html += `</div></div>`;
 
-        // 天盤獨立首干/次干狀態按鈕
         html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>`; });
         html += `</div><div class="grid-4" style="margin-top:8px;">
@@ -171,7 +170,6 @@ function renderPanels() {
             <label><input type="checkbox" class="tian-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[入墓]</div></label>
         </div></div>`;
 
-        // 地盤獨立首干/次干狀態按鈕
         html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>`; });
         html += `</div><div class="grid-4" style="margin-top:8px;">
@@ -342,19 +340,16 @@ function getOutputString() {
         let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text;
         let jiaStr = jiaVal ? ` (${jiaText}旬首)` : "";
         
-        // 抓取首干狀態
         let tHarm1Arr = [];
         if(p.querySelector('.tian-jx-1') && p.querySelector('.tian-jx-1').checked) tHarm1Arr.push("擊刑");
         if(p.querySelector('.tian-rm-1') && p.querySelector('.tian-rm-1').checked) tHarm1Arr.push("入墓");
         let tHarm1Str = tHarm1Arr.length ? `(${tHarm1Arr.join(",")})` : "";
 
-        // 抓取次干狀態
         let tHarm2Arr = [];
         if(p.querySelector('.tian-jx-2') && p.querySelector('.tian-jx-2').checked) tHarm2Arr.push("擊刑");
         if(p.querySelector('.tian-rm-2') && p.querySelector('.tian-rm-2').checked) tHarm2Arr.push("入墓");
         let tHarm2Str = tHarm2Arr.length ? `(${tHarm2Arr.join(",")})` : "";
 
-        // 合併天盤天干與個別獨立狀態
         let finalTGans = [];
         if (tGans.length > 0) {
             finalTGans.push(tGans[0] + tHarm1Str);
@@ -371,19 +366,16 @@ function getOutputString() {
 
         let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
         
-        // 抓取地盤首干狀態
         let dHarm1Arr = [];
         if(p.querySelector('.di-jx-1') && p.querySelector('.di-jx-1').checked) dHarm1Arr.push("擊刑");
         if(p.querySelector('.di-rm-1') && p.querySelector('.di-rm-1').checked) dHarm1Arr.push("入墓");
         let dHarm1Str = dHarm1Arr.length ? `(${dHarm1Arr.join(",")})` : "";
 
-        // 抓取地盤次干狀態
         let dHarm2Arr = [];
         if(p.querySelector('.di-jx-2') && p.querySelector('.di-jx-2').checked) dHarm2Arr.push("擊刑");
         if(p.querySelector('.di-rm-2') && p.querySelector('.di-rm-2').checked) dHarm2Arr.push("入墓");
         let dHarm2Str = dHarm2Arr.length ? `(${dHarm2Arr.join(",")})` : "";
 
-        // 合併地盤天干與個別獨立狀態
         let finalDGans = [];
         if (dGans.length > 0) {
             finalDGans.push(dGans[0] + dHarm1Str);
@@ -426,8 +418,8 @@ function updatePreview() {
         previewBox.value = getOutputString();
     }
 
-    // 清空九宮格時，使用完整的 gridPalaces 結構來尋找 DOM 節點
-    gridPalaces.forEach(pName => {
+    // 這裡改用 allPalaces 以確保重置九宮格時也涵蓋了「陰盤(無中)」
+    allPalaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
         if(cell) {
             cell.querySelector('.cell-content').innerHTML = "";
@@ -455,7 +447,6 @@ function updatePreview() {
 
             let tGansArr = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
             
-            // 九宮格內部精簡字眼
             let tHarm1ArrGrid = [];
             if(p.querySelector('.tian-jx-1') && p.querySelector('.tian-jx-1').checked) tHarm1ArrGrid.push("刑");
             if(p.querySelector('.tian-rm-1') && p.querySelector('.tian-rm-1').checked) tHarm1ArrGrid.push("墓");
