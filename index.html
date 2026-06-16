@@ -101,8 +101,10 @@ const topics = {
     "出行尋物 (綜合)": ["日干 (求測者)", "時干 (目的地/失物)", "六合 (方向/失蹤者)", "傷門 (交通車輛)"]
 };
 
-// 區分「下拉選單專用宮位」與「九宮格重置專用宮位」
+// 【重要修改區】：將原有的宮位陣列拆分
+// 1. dropdownPalaces：專給下拉選單使用，已拿掉「陰盤(無中)」
 const dropdownPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
+// 2. allPalaces：專給九宮格畫面清除與渲染使用，保留了「陰盤(無中)」
 const allPalaces = ["坎一宮(水)", "坤二宮(土)", "震三宮(木)", "巽四宮(木)", "陰盤(無中)", "乾六宮(金)", "兌七宮(金)", "艮八宮(土)", "離九宮(火)"];
 
 const jiaMap = {"無": "", "子 (戊)": "戊", "戌 (己)": "己", "申 (庚)": "庚", "午 (辛)": "辛", "辰 (壬)": "壬", "寅 (癸)": "癸"};
@@ -149,10 +151,10 @@ function renderPanels() {
             </div>
         </div>`;
         
-        // 這裡改用 dropdownPalaces，不包含陰盤(無中)
+        // 【重要修改區】：這裡的宮位選單綁定的是 dropdownPalaces 陣列
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
-                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + dropdownPalaces.map(x=>`<option>${x}</option>`).join('') + `</select>
+                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + dropdownPalaces.map(x=>`<option value="${x}">${x}</option>`).join('') + `</select>
                 <select class="jia-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + Object.keys(jiaMap).map(x=>`<option value="${jiaMap[x]}">${x}</option>`).join('') + `</select>
             </div>
         </div>`;
@@ -418,7 +420,7 @@ function updatePreview() {
         previewBox.value = getOutputString();
     }
 
-    // 這裡改用 allPalaces 以確保重置九宮格時也涵蓋了「陰盤(無中)」
+    // 【重要修改區】：使用 allPalaces 來遍歷重置九宮格畫面，確保也涵蓋到了中央的「陰盤(無中)」
     allPalaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
         if(cell) {
