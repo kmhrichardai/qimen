@@ -21,7 +21,7 @@
     .grid-5, .grid-4 { display: grid; gap: 8px; }
     .grid-5 { grid-template-columns: repeat(5, 1fr); }
     .grid-4 { grid-template-columns: repeat(4, 1fr); }
-    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; }
+    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; text-align: center; }
     input[type="checkbox"], input[type="radio"] { display: none; }
     input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: #007aff; color: #fff; border-color: #007aff; font-weight: bold; }
     input[type="checkbox"]:disabled + .btn-check { opacity: 0.5; }
@@ -157,48 +157,24 @@ function renderPanels() {
         gods.forEach(g => { html += `<label><input type="radio" name="tg_${idx}" value="${g}" onclick="handleRadioClick(this)"><div class="btn-check">${g}</div></label>`; });
         html += `</div></div>`;
 
+        // 【更新】天盤天干 狀態獨立按鈕
         html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>`; });
-        html += `</div>
-        <div class="harm-group" style="display:flex; gap:10px; margin-top:8px;">
-            <div class="select-container" style="flex:1;">
-                <select class="tian-harm-1" style="margin-top:0;" onchange="updatePreview()">
-                    <option value="">首干 (無狀態)</option>
-                    <option value="擊刑">首干 [擊刑]</option>
-                    <option value="入墓">首干 [入墓]</option>
-                    <option value="入墓,擊刑">首干 [刑墓]</option>
-                </select>
-            </div>
-            <div class="select-container" style="flex:1;">
-                <select class="tian-harm-2" style="margin-top:0;" onchange="updatePreview()">
-                    <option value="">次干 (無狀態)</option>
-                    <option value="擊刑">次干 [擊刑]</option>
-                    <option value="入墓">次干 [入墓]</option>
-                    <option value="入墓,擊刑">次干 [刑墓]</option>
-                </select>
-            </div>
+        html += `</div><div class="grid-4" style="margin-top:8px;">
+            <label><input type="checkbox" class="tian-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">首干[擊刑]</div></label>
+            <label><input type="checkbox" class="tian-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">首干[入墓]</div></label>
+            <label><input type="checkbox" class="tian-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">次干[擊刑]</div></label>
+            <label><input type="checkbox" class="tian-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">次干[入墓]</div></label>
         </div></div>`;
 
+        // 【更新】地盤天干 狀態獨立按鈕
         html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>`; });
-        html += `</div>
-        <div class="harm-group" style="display:flex; gap:10px; margin-top:8px;">
-            <div class="select-container" style="flex:1;">
-                <select class="di-harm-1" style="margin-top:0;" onchange="updatePreview()">
-                    <option value="">首干 (無狀態)</option>
-                    <option value="擊刑">首干 [擊刑]</option>
-                    <option value="入墓">首干 [入墓]</option>
-                    <option value="入墓,擊刑">首干 [刑墓]</option>
-                </select>
-            </div>
-            <div class="select-container" style="flex:1;">
-                <select class="di-harm-2" style="margin-top:0;" onchange="updatePreview()">
-                    <option value="">次干 (無狀態)</option>
-                    <option value="擊刑">次干 [擊刑]</option>
-                    <option value="入墓">次干 [入墓]</option>
-                    <option value="入墓,擊刑">次干 [刑墓]</option>
-                </select>
-            </div>
+        html += `</div><div class="grid-4" style="margin-top:8px;">
+            <label><input type="checkbox" class="di-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">首干[擊刑]</div></label>
+            <label><input type="checkbox" class="di-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">首干[入墓]</div></label>
+            <label><input type="checkbox" class="di-jx-2" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">次干[擊刑]</div></label>
+            <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px;">次干[入墓]</div></label>
         </div></div>`;
 
         html += `<div class="form-group"><label class="title">5. 九星</label><div class="grid-4">`;
@@ -266,15 +242,21 @@ function copyPanelData(targetIdx, sourceIdx) {
         cb.checked = sourcePanel.querySelectorAll('.tian-gan')[i].checked;
     });
     
-    targetPanel.querySelector('.tian-harm-1').value = sourcePanel.querySelector('.tian-harm-1').value;
-    targetPanel.querySelector('.tian-harm-2').value = sourcePanel.querySelector('.tian-harm-2').value;
+    // 同步新版首干/次干獨立開關
+    targetPanel.querySelector('.tian-jx-1').checked = sourcePanel.querySelector('.tian-jx-1').checked;
+    targetPanel.querySelector('.tian-rm-1').checked = sourcePanel.querySelector('.tian-rm-1').checked;
+    targetPanel.querySelector('.tian-jx-2').checked = sourcePanel.querySelector('.tian-jx-2').checked;
+    targetPanel.querySelector('.tian-rm-2').checked = sourcePanel.querySelector('.tian-rm-2').checked;
 
     targetPanel.querySelectorAll('.di-gan').forEach((cb, i) => {
         cb.checked = sourcePanel.querySelectorAll('.di-gan')[i].checked;
     });
     
-    targetPanel.querySelector('.di-harm-1').value = sourcePanel.querySelector('.di-harm-1').value;
-    targetPanel.querySelector('.di-harm-2').value = sourcePanel.querySelector('.di-harm-2').value;
+    // 同步新版首干/次干獨立開關
+    targetPanel.querySelector('.di-jx-1').checked = sourcePanel.querySelector('.di-jx-1').checked;
+    targetPanel.querySelector('.di-rm-1').checked = sourcePanel.querySelector('.di-rm-1').checked;
+    targetPanel.querySelector('.di-jx-2').checked = sourcePanel.querySelector('.di-jx-2').checked;
+    targetPanel.querySelector('.di-rm-2').checked = sourcePanel.querySelector('.di-rm-2').checked;
 
     const sourceStar = sourcePanel.querySelector(`input[name="star_${sourceIdx}"]:checked`);
     const targetStars = targetPanel.querySelectorAll(`input[name="star_${targetIdx}"]`);
@@ -334,7 +316,7 @@ function clearAllSelections() {
         rb.checked = false;
         rb.dataset.checked = "false";
     });
-    document.querySelectorAll('.palace-sel, .jia-sel, .tian-harm-1, .tian-harm-2, .di-harm-1, .di-harm-2').forEach(sel => sel.selectedIndex = 0);
+    document.querySelectorAll('.palace-sel, .jia-sel').forEach(sel => sel.selectedIndex = 0);
     updatePreview();
 }
 
@@ -358,49 +340,54 @@ function getOutputString() {
         let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text;
         let jiaStr = jiaVal ? ` (${jiaText}旬首)` : "";
         
-        let tHarm1 = p.querySelector('.tian-harm-1').value;
-        let tHarm2 = p.querySelector('.tian-harm-2').value;
+        // 抓取首干狀態
+        let tHarm1Arr = [];
+        if(p.querySelector('.tian-jx-1') && p.querySelector('.tian-jx-1').checked) tHarm1Arr.push("擊刑");
+        if(p.querySelector('.tian-rm-1') && p.querySelector('.tian-rm-1').checked) tHarm1Arr.push("入墓");
+        let tHarm1Str = tHarm1Arr.length ? `(${tHarm1Arr.join(",")})` : "";
+
+        // 抓取次干狀態
+        let tHarm2Arr = [];
+        if(p.querySelector('.tian-jx-2') && p.querySelector('.tian-jx-2').checked) tHarm2Arr.push("擊刑");
+        if(p.querySelector('.tian-rm-2') && p.querySelector('.tian-rm-2').checked) tHarm2Arr.push("入墓");
+        let tHarm2Str = tHarm2Arr.length ? `(${tHarm2Arr.join(",")})` : "";
 
         let finalTGans = [];
         if (tGans.length > 0) {
-            let s1 = tGans[0];
-            if(tHarm1) s1 += `(${tHarm1})`;
-            finalTGans.push(s1);
-
+            finalTGans.push(tGans[0] + tHarm1Str);
             if (tGans.length > 1) {
-                let s2 = tGans[1];
-                if(tHarm2) s2 += `(${tHarm2})`;
-                finalTGans.push(s2);
+                finalTGans.push(tGans[1] + tHarm2Str);
             }
         }
         
         if (finalTGans.length) {
-            lines.push(`天盤 : ${finalTGans.join("+")}${jiaStr}`);
+            lines.push(`天盤 : ${finalTGans.join(" + ")}${jiaStr}`);
         } else if (jiaVal) {
-            let jiaBase = jiaStr.trim();
-            if(tHarm1) jiaBase += `(${tHarm1})`;
-            lines.push(`天盤甲藏 : ${jiaBase}`);
+            lines.push(`天盤甲藏 : ${jiaStr.trim()}${tHarm1Str}`);
         }
 
         let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
-        let dHarm1 = p.querySelector('.di-harm-1').value;
-        let dHarm2 = p.querySelector('.di-harm-2').value;
+        
+        let dHarm1Arr = [];
+        if(p.querySelector('.di-jx-1') && p.querySelector('.di-jx-1').checked) dHarm1Arr.push("擊刑");
+        if(p.querySelector('.di-rm-1') && p.querySelector('.di-rm-1').checked) dHarm1Arr.push("入墓");
+        let dHarm1Str = dHarm1Arr.length ? `(${dHarm1Arr.join(",")})` : "";
+
+        let dHarm2Arr = [];
+        if(p.querySelector('.di-jx-2') && p.querySelector('.di-jx-2').checked) dHarm2Arr.push("擊刑");
+        if(p.querySelector('.di-rm-2') && p.querySelector('.di-rm-2').checked) dHarm2Arr.push("入墓");
+        let dHarm2Str = dHarm2Arr.length ? `(${dHarm2Arr.join(",")})` : "";
 
         let finalDGans = [];
         if (dGans.length > 0) {
-            let s1 = dGans[0];
-            if(dHarm1) s1 += `(${dHarm1})`;
-            finalDGans.push(s1);
-
+            finalDGans.push(dGans[0] + dHarm1Str);
             if (dGans.length > 1) {
-                let s2 = dGans[1];
-                if(dHarm2) s2 += `(${dHarm2})`;
-                finalDGans.push(s2);
+                finalDGans.push(dGans[1] + dHarm2Str);
             }
         }
 
         if (finalDGans.length) {
-            lines.push(`地盤 : ${finalDGans.join("+")}`);
+            lines.push(`地盤 : ${finalDGans.join(" + ")}`);
         }
 
         let star = p.querySelector(`input[name="star_${idx}"]:checked`);
@@ -459,20 +446,24 @@ function updatePreview() {
                 door += `<span style="color:#ff3b30; font-size:10px;">(迫)</span>`;
             }
 
-            const formatGridHarm = (str) => {
-                if(!str) return "";
-                return "(" + str.replace("入墓,擊刑", "墓.刑").replace("擊刑", "刑").replace("入墓", "墓") + ")";
-            };
-
             let tGansArr = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
-            let tHarm1 = p.querySelector('.tian-harm-1').value;
-            let tHarm2 = p.querySelector('.tian-harm-2').value;
+            
+            // 九宮格預覽使用精簡字眼
+            let tHarm1ArrGrid = [];
+            if(p.querySelector('.tian-jx-1') && p.querySelector('.tian-jx-1').checked) tHarm1ArrGrid.push("刑");
+            if(p.querySelector('.tian-rm-1') && p.querySelector('.tian-rm-1').checked) tHarm1ArrGrid.push("墓");
+            let tHarm1StrGrid = tHarm1ArrGrid.length ? `(${tHarm1ArrGrid.join(".")})` : "";
+
+            let tHarm2ArrGrid = [];
+            if(p.querySelector('.tian-jx-2') && p.querySelector('.tian-jx-2').checked) tHarm2ArrGrid.push("刑");
+            if(p.querySelector('.tian-rm-2') && p.querySelector('.tian-rm-2').checked) tHarm2ArrGrid.push("墓");
+            let tHarm2StrGrid = tHarm2ArrGrid.length ? `(${tHarm2ArrGrid.join(".")})` : "";
             
             let tGansDisplay = [];
             if(tGansArr.length > 0) {
-                tGansDisplay.push(tGansArr[0] + formatGridHarm(tHarm1));
+                tGansDisplay.push(tGansArr[0] + tHarm1StrGrid);
                 if(tGansArr.length > 1) {
-                    tGansDisplay.push(tGansArr[1] + formatGridHarm(tHarm2));
+                    tGansDisplay.push(tGansArr[1] + tHarm2StrGrid);
                 }
             }
             let tGansStr = tGansDisplay.join("+");
@@ -480,18 +471,26 @@ function updatePreview() {
             let jiaVal = p.querySelector('.jia-sel').value;
             if(!tGansStr && jiaVal) {
                 let jiaText = p.querySelector('.jia-sel').options[p.querySelector('.jia-sel').selectedIndex].text.split(" ")[0];
-                tGansStr = `首:${jiaText}${formatGridHarm(tHarm1)}`;
+                tGansStr = `首:${jiaText}${tHarm1StrGrid}`;
             }
 
             let dGansArr = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
-            let dHarm1 = p.querySelector('.di-harm-1').value;
-            let dHarm2 = p.querySelector('.di-harm-2').value;
+            
+            let dHarm1ArrGrid = [];
+            if(p.querySelector('.di-jx-1') && p.querySelector('.di-jx-1').checked) dHarm1ArrGrid.push("刑");
+            if(p.querySelector('.di-rm-1') && p.querySelector('.di-rm-1').checked) dHarm1ArrGrid.push("墓");
+            let dHarm1StrGrid = dHarm1ArrGrid.length ? `(${dHarm1ArrGrid.join(".")})` : "";
+
+            let dHarm2ArrGrid = [];
+            if(p.querySelector('.di-jx-2') && p.querySelector('.di-jx-2').checked) dHarm2ArrGrid.push("刑");
+            if(p.querySelector('.di-rm-2') && p.querySelector('.di-rm-2').checked) dHarm2ArrGrid.push("墓");
+            let dHarm2StrGrid = dHarm2ArrGrid.length ? `(${dHarm2ArrGrid.join(".")})` : "";
             
             let dGansDisplay = [];
             if(dGansArr.length > 0) {
-                dGansDisplay.push(dGansArr[0] + formatGridHarm(dHarm1));
+                dGansDisplay.push(dGansArr[0] + dHarm1StrGrid);
                 if(dGansArr.length > 1) {
-                    dGansDisplay.push(dGansArr[1] + formatGridHarm(dHarm2));
+                    dGansDisplay.push(dGansArr[1] + dHarm2StrGrid);
                 }
             }
             let dGansStr = dGansDisplay.join("+");
