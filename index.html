@@ -53,7 +53,24 @@
 <body>
 
 <div class="top-bar">
-    <label style="font-weight:bold;">選擇問事主題：</label>
+    <label style="font-weight:bold; color:#007aff;">1. 設定排盤基礎 (用於精準全自動算暗干)：</label>
+    <div style="display:flex; gap:10px; margin-top:8px; margin-bottom: 15px;">
+        <div class="select-container" style="flex:1;">
+            <select id="dunType" onchange="autoUpdateAllAnGans(); updatePreview()">
+                <option value="yang">陽遁</option>
+                <option value="yin">陰遁</option>
+            </select>
+        </div>
+        <div class="select-container" style="flex:1;">
+            <select id="juNum" onchange="autoUpdateAllAnGans(); updatePreview()">
+                <option value="1">一局</option><option value="2">二局</option><option value="3">三局</option>
+                <option value="4">四局</option><option value="5">五局</option><option value="6">六局</option>
+                <option value="7" selected>七局</option><option value="8">八局</option><option value="9">九局</option>
+            </select>
+        </div>
+    </div>
+    
+    <label style="font-weight:bold;">2. 選擇問事主題：</label>
     <div class="select-container">
         <select id="topicSelect" onchange="renderPanels()"></select>
     </div>
@@ -108,12 +125,11 @@ const jiaMap = {"無": "", "子 (戊)": "戊", "戌 (己)": "己", "申 (庚)": 
 const gods = ["值符", "騰蛇", "太陰", "六合", "白虎", "玄武", "九地", "九天"];
 const tiangan = ["乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const stars = ["天蓬星", "天芮禽星", "天沖星", "天輔星", "天心星", "天柱星", "天任星", "天英星"];
-const doors = ["休門", "生門", "傷門", "杜門", "景門", "死門", "驚門", "開門"];
+const doors = ["休門", "死門", "傷門", "杜門", "開門", "驚門", "生門", "景門"];
 
-// 奇門天干標準排布路徑，用於動態計算暗干偏移量
+// 奇門三奇六儀固定順序
 const ganOrder = ["戊", "己", "庚", "辛", "壬", "癸", "丁", "丙", "乙"];
 
-// 12長生資料庫
 const changshengData = {
     "坎一宮(水)": { "甲":"沐浴", "乙":"病", "丙":"胎", "丁":"絕", "戊":"胎", "己":"絕", "庚":"死", "辛":"長生", "壬":"帝旺", "癸":"臨官" },
     "坤二宮(土)": { "甲":"墓", "乙":"衰", "丙":"病", "丁":"臨官", "戊":"病", "己":"臨官", "庚":"衰", "辛":"臨官", "壬":"墓", "癸":"養" },
@@ -130,54 +146,77 @@ function getChangsheng(palace, gan) {
     return changshengData[palace][gan] || "";
 }
 
-// 【修復的核心函式】：動態計算暗干
-function calculateAllAnGans() {
-    let anGanResult = {};
-    let shiPanel = null;
+// 【終極解決方案】：暗干隨門飛演算法 (由八門與遁局自動精確推斷)
+function autoCalcAnGan(idx) {
+    let panel = document.getElementById("panel_" + idx);
+    if (!panel) return;
     
-    // 1. 尋找「時干」面板作為運算基準
-    let allPanels = document.querySelectorAll('#panelsContainer > .panel');
-    allPanels.forEach(p => {
-        if (p.dataset.godname && p.dataset.godname.includes("時干")) {
-            shiPanel = p;
+    let dunType = document.getElementById("dunType").value;
+    let juNum = parseInt(document.getElementById("juNum").value);
+    
+    // 檢查有沒有選八門
+    let doorRadio = panel.querySelector(`input[name="door_${idx}"]:checked`);
+    if (!doorRadio) return;
+    
+    let door = doorRadio.value;
+    // 八門原始老家對應宮位
+    const doorHome = { "休門": 1, "死門": 2, "傷門": 3, "杜門": 4, "開門": 6, "驚門": 7, "生門": 8, "景門": 9 };
+    let homeP = doorHome[door];
+    if (!homeP) return;
+
+    // 根據使用者的局數與遁型，背景瞬間建構底層九宮地盤
+    let map = {};
+    let currentPalace = juNum;
+    for (let i = 0; i < 9; i++) {
+        map[currentPalace] = ganOrder[i];
+        if (dunType === 'yang') {
+            currentPalace = currentPalace === 9 ? 1 : currentPalace + 1;
+        } else {
+            currentPalace = currentPalace === 1 ? 9 : currentPalace - 1;
+        }
+    }
+    
+    // 該門老家對應的地盤干，就是隨門飛過來的「暗干」！
+    let autoGan = map[homeP];
+    
+    // 將結果自動勾選在該面板的暗干欄位上
+    let anGanRadios = panel.querySelectorAll(`input[name="ag_${idx}"]`);
+    anGanRadios.forEach(r => {
+        if (r.value === autoGan) {
+            r.checked = true;
+            r.dataset.checked = "true";
+        } else {
+            r.checked = false;
+            r.dataset.checked = "false";
         }
     });
-    
-    // 如果沒有找到時干面板，就無法推算
-    if (!shiPanel) return anGanResult;
-    
-    // 2. 抓取時干面板的「天盤首干」與「地盤首干」
-    let checkedTianGans = shiPanel.querySelectorAll('.tian-gan:checked');
-    let checkedDiGans = shiPanel.querySelectorAll('.di-gan:checked');
-    
-    // 必須天、地盤都勾選了，系統才有足夠資料計算
-    if (checkedTianGans.length === 0 || checkedDiGans.length === 0) return anGanResult;
-    
-    let shiGan = checkedTianGans[0].value;
-    let baseDiGan = checkedDiGans[0].value;
-    
-    let baseGanIdx = ganOrder.indexOf(baseDiGan);
-    let shiGanIdx = ganOrder.indexOf(shiGan);
-    if (baseGanIdx === -1 || shiGanIdx === -1) return anGanResult;
-    
-    // 3. 計算位移差距
-    let offset = (shiGanIdx - baseGanIdx + 9) % 9;
-    
-    // 4. 套用到所有用神面板，推導暗干
-    allPanels.forEach(p => {
-        let curPalace = p.querySelector('.palace-sel').value;
-        let curDiGans = p.querySelectorAll('.di-gan:checked');
-        if (curDiGans.length > 0) {
-            let curDiGan = curDiGans[0].value;
-            let curDiGanIdx = ganOrder.indexOf(curDiGan);
-            if (curDiGanIdx !== -1) {
-                let targetGanIdx = (curDiGanIdx + offset) % 9;
-                anGanResult[curPalace] = ganOrder[targetGanIdx];
-            }
-        }
+}
+
+function autoUpdateAllAnGans() {
+    document.querySelectorAll('.panel').forEach((p, idx) => {
+        if(p.dataset.godname) autoCalcAnGan(idx);
     });
+}
+
+function handleRadioClick(radio) {
+    if (radio.dataset.checked === "true") {
+        radio.checked = false;
+        radio.dataset.checked = "false";
+    } else {
+        const siblings = document.querySelectorAll(`input[name="${radio.name}"]`);
+        siblings.forEach(r => r.dataset.checked = "false");
+        
+        radio.checked = true;
+        radio.dataset.checked = "true";
+    }
     
-    return anGanResult;
+    // 如果使用者點擊的是八門，立刻觸發該宮位的暗干全自動演算！
+    if (radio.name.startsWith("door_") && radio.checked) {
+        let idx = radio.name.split("_")[1];
+        autoCalcAnGan(idx);
+    }
+    
+    updatePreview();
 }
 
 window.onload = function() {
@@ -247,19 +286,24 @@ function renderPanels() {
             <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#2980b9;">次干[入墓]</div></label>
         </div></div>`;
 
-        html += `<div class="form-group"><label class="title">5. 九星</label><div class="grid-4">`;
+        // 獨立為手動暗干欄位，給予最大彈性
+        html += `<div class="form-group"><label class="title" style="color:#007aff;">5. 暗干 (點選八門即自動計算，亦可手動改)</label><div class="grid-5">`;
+        tiangan.forEach(t => { html += `<label><input type="radio" class="an-gan-radio" name="ag_${idx}" value="${t}" onclick="handleRadioClick(this)"><div class="btn-check">${t}</div></label>`; });
+        html += `</div></div>`;
+
+        html += `<div class="form-group"><label class="title">6. 九星</label><div class="grid-4">`;
         stars.forEach(s => { html += `<label><input type="radio" name="star_${idx}" value="${s}" onclick="handleRadioClick(this)"><div class="btn-check">${s.substring(0,2)}</div></label>`; });
         html += `</div></div>`;
 
-        html += `<div class="form-group"><label class="title">6. 八門</label><div class="grid-4">`;
+        html += `<div class="form-group"><label class="title">7. 八門</label><div class="grid-4">`;
         doors.forEach(d => { html += `<label><input type="radio" name="door_${idx}" value="${d}" onclick="handleRadioClick(this)"><div class="btn-check">${d}</div></label>`; });
         html += `</div><div class="harm-group"><label><input type="checkbox" class="door-mp" value="門迫" onchange="updatePreview()"><div class="btn-check" style="margin-top:8px;">帶 [門迫]</div></label></div></div>`;
 
-        html += `<div class="form-group"><label class="title">7. 地盤八神</label><div class="grid-4">`;
+        html += `<div class="form-group"><label class="title">8. 地盤八神</label><div class="grid-4">`;
         gods.forEach(g => { html += `<label><input type="radio" name="dg_${idx}" value="${g}" onclick="handleRadioClick(this)"><div class="btn-check">${g}</div></label>`; });
         html += `</div></div>`;
 
-        html += `<div class="form-group"><label class="title">8. 狀態標記</label><div class="harm-group">
+        html += `<div class="form-group"><label class="title">9. 狀態標記</label><div class="harm-group">
             <label><input type="checkbox" class="spec-kw" value="空亡" onchange="updatePreview()"><div class="btn-check">空亡</div></label>
             <label><input type="checkbox" class="spec-mx" value="馬星" onchange="updatePreview()"><div class="btn-check">馬星</div></label>
         </div></div>`;
@@ -268,20 +312,6 @@ function renderPanels() {
         container.appendChild(p);
     });
     
-    updatePreview();
-}
-
-function handleRadioClick(radio) {
-    if (radio.dataset.checked === "true") {
-        radio.checked = false;
-        radio.dataset.checked = "false";
-    } else {
-        const siblings = document.querySelectorAll(`input[name="${radio.name}"]`);
-        siblings.forEach(r => r.dataset.checked = "false");
-        
-        radio.checked = true;
-        radio.dataset.checked = "true";
-    }
     updatePreview();
 }
 
@@ -308,23 +338,30 @@ function copyPanelData(targetIdx, sourceIdx) {
         if (checkedTg) checkedTg.checked = false;
     }
 
-    targetPanel.querySelectorAll('.tian-gan').forEach((cb, i) => {
-        cb.checked = sourcePanel.querySelectorAll('.tian-gan')[i].checked;
-    });
-    
+    targetPanel.querySelectorAll('.tian-gan').forEach((cb, i) => { cb.checked = sourcePanel.querySelectorAll('.tian-gan')[i].checked; });
     targetPanel.querySelector('.tian-jx-1').checked = sourcePanel.querySelector('.tian-jx-1').checked;
     targetPanel.querySelector('.tian-rm-1').checked = sourcePanel.querySelector('.tian-rm-1').checked;
     targetPanel.querySelector('.tian-jx-2').checked = sourcePanel.querySelector('.tian-jx-2').checked;
     targetPanel.querySelector('.tian-rm-2').checked = sourcePanel.querySelector('.tian-rm-2').checked;
 
-    targetPanel.querySelectorAll('.di-gan').forEach((cb, i) => {
-        cb.checked = sourcePanel.querySelectorAll('.di-gan')[i].checked;
-    });
-    
+    targetPanel.querySelectorAll('.di-gan').forEach((cb, i) => { cb.checked = sourcePanel.querySelectorAll('.di-gan')[i].checked; });
     targetPanel.querySelector('.di-jx-1').checked = sourcePanel.querySelector('.di-jx-1').checked;
     targetPanel.querySelector('.di-rm-1').checked = sourcePanel.querySelector('.di-rm-1').checked;
     targetPanel.querySelector('.di-jx-2').checked = sourcePanel.querySelector('.di-jx-2').checked;
     targetPanel.querySelector('.di-rm-2').checked = sourcePanel.querySelector('.di-rm-2').checked;
+
+    // 複製暗干
+    const sourceAg = sourcePanel.querySelector(`input[name="ag_${sourceIdx}"]:checked`);
+    const targetAgs = targetPanel.querySelectorAll(`input[name="ag_${targetIdx}"]`);
+    targetAgs.forEach(r => r.dataset.checked = "false");
+    if (sourceAg) {
+        let tRadio = targetPanel.querySelector(`input[name="ag_${targetIdx}"][value="${sourceAg.value}"]`);
+        tRadio.checked = true;
+        tRadio.dataset.checked = "true";
+    } else {
+        const checkedAg = targetPanel.querySelector(`input[name="ag_${targetIdx}"]:checked`);
+        if (checkedAg) checkedAg.checked = false;
+    }
 
     const sourceStar = sourcePanel.querySelector(`input[name="star_${sourceIdx}"]:checked`);
     const targetStars = targetPanel.querySelectorAll(`input[name="star_${targetIdx}"]`);
@@ -372,18 +409,13 @@ function copyPanelData(targetIdx, sourceIdx) {
 function checkLimit(cb, className) {
     let panel = cb.closest('.panel');
     let checked = panel.querySelectorAll(`.${className}:checked`);
-    if(checked.length > 2) {
-        cb.checked = false;
-    }
+    if(checked.length > 2) cb.checked = false;
     updatePreview();
 }
 
 function clearAllSelections() {
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-    document.querySelectorAll('input[type="radio"]').forEach(rb => {
-        rb.checked = false;
-        rb.dataset.checked = "false";
-    });
+    document.querySelectorAll('input[type="radio"]').forEach(rb => { rb.checked = false; rb.dataset.checked = "false"; });
     document.querySelectorAll('.palace-sel, .jia-sel').forEach(sel => sel.selectedIndex = 0);
     updatePreview();
 }
@@ -392,9 +424,6 @@ function getOutputString() {
     let output = [];
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
     output.push(`問事主題 : ${topicText}\n==============================\n`);
-
-    // 取得當前自動算出的暗干
-    let currentAnGans = calculateAllAnGans();
 
     document.querySelectorAll('.panel').forEach((p, idx) => {
         if(!p.dataset.godname) return;
@@ -422,7 +451,6 @@ function getOutputString() {
         if(p.querySelector('.tian-rm-2') && p.querySelector('.tian-rm-2').checked) tHarm2Arr.push("入墓");
         let tHarm2Str = tHarm2Arr.length ? `(${tHarm2Arr.join(",")})` : "";
 
-        // 將 12長生 加入天盤輸出
         let finalTGans = [];
         if (tGans.length > 0) {
             let cs1 = getChangsheng(curPalace, tGans[0]);
@@ -434,7 +462,6 @@ function getOutputString() {
                 finalTGans.push(tGans[1] + cs2Str + tHarm2Str);
             }
         }
-        
         if (finalTGans.length) {
             lines.push(`天盤 : ${finalTGans.join(" + ")}${jiaStr}`);
         } else if (jiaVal) {
@@ -443,13 +470,13 @@ function getOutputString() {
             lines.push(`天盤甲藏 : ${jiaStr.trim()}${csJiaStr}${tHarm1Str}`);
         }
 
-        // 自動插入暗干文字
-        if (currentAnGans[curPalace]) {
-            lines.push(`暗干 : ${currentAnGans[curPalace]}`);
+        // 讀取已經算好(或手動改好)的暗干
+        let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
+        if (anGanRadio) {
+            lines.push(`暗干 : ${anGanRadio.value}`);
         }
 
         let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
-        
         let dHarm1Arr = [];
         if(p.querySelector('.di-jx-1') && p.querySelector('.di-jx-1').checked) dHarm1Arr.push("擊刑");
         if(p.querySelector('.di-rm-1') && p.querySelector('.di-rm-1').checked) dHarm1Arr.push("入墓");
@@ -471,7 +498,6 @@ function getOutputString() {
                 finalDGans.push(dGans[1] + dcs2Str + dHarm2Str);
             }
         }
-
         if (finalDGans.length) {
             lines.push(`地盤 : ${finalDGans.join(" + ")}`);
         }
@@ -502,18 +528,12 @@ function getOutputString() {
 
 function updatePreview() {
     const previewBox = document.getElementById("previewArea");
-    if(previewBox) {
-        previewBox.value = getOutputString();
-    }
+    if(previewBox) previewBox.value = getOutputString();
 
     allPalaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
-        if(cell) {
-            cell.querySelector('.cell-content').innerHTML = "";
-        }
+        if(cell) cell.querySelector('.cell-content').innerHTML = "";
     });
-
-    let currentAnGans = calculateAllAnGans();
 
     document.querySelectorAll('#panelsContainer > .panel').forEach((p, idx) => {
         if(!p.dataset.godname) return;
@@ -527,7 +547,6 @@ function updatePreview() {
             
             let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`) ? p.querySelector(`input[name="tg_${idx}"]:checked`).value : "";
             let dGod = p.querySelector(`input[name="dg_${idx}"]:checked`) ? p.querySelector(`input[name="dg_${idx}"]:checked`).value : "";
-            
             let star = p.querySelector(`input[name="star_${idx}"]:checked`) ? p.querySelector(`input[name="star_${idx}"]:checked`).value.substring(0,2) : "";
             let door = p.querySelector(`input[name="door_${idx}"]:checked`) ? p.querySelector(`input[name="door_${idx}"]:checked`).value.substring(0,2) : "";
             if (door && p.querySelector('.door-mp') && p.querySelector('.door-mp').checked) {
@@ -535,7 +554,6 @@ function updatePreview() {
             }
 
             let tGansArr = Array.from(p.querySelectorAll('.tian-gan:checked')).map(x=>x.value);
-            
             let tHarm1ArrGrid = [];
             if(p.querySelector('.tian-jx-1') && p.querySelector('.tian-jx-1').checked) tHarm1ArrGrid.push("刑");
             if(p.querySelector('.tian-rm-1') && p.querySelector('.tian-rm-1').checked) tHarm1ArrGrid.push("墓");
@@ -568,7 +586,6 @@ function updatePreview() {
             }
 
             let dGansArr = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
-            
             let dHarm1ArrGrid = [];
             if(p.querySelector('.di-jx-1') && p.querySelector('.di-jx-1').checked) dHarm1ArrGrid.push("刑");
             if(p.querySelector('.di-rm-1') && p.querySelector('.di-rm-1').checked) dHarm1ArrGrid.push("墓");
@@ -592,10 +609,10 @@ function updatePreview() {
             }
             let dGansStr = dGansDisplay.join("+");
 
-            // 九宮格同步顯示暗干
-            let anGanStr = currentAnGans[pName] ? `<span style="color:#007aff; font-weight:bold;">(${currentAnGans[pName]})</span>` : "";
+            // 同步讀取暗干設定來顯示在格子中
+            let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
+            let anGanStr = anGanRadio ? `<span style="color:#007aff; font-weight:bold;">(${anGanRadio.value})</span>` : "";
 
-            // 完全修正上一版導致當機的錯字（由 ${span 改為 <span）
             let gansDisplay = "";
             if (tGansStr || dGansStr) {
                 gansDisplay = `<span style="color:#ff3b30; font-weight:bold;">${tGansStr || '-'}</span>/<span style="color:#8e8e93;">${dGansStr || '-'}</span> ${anGanStr}`;
