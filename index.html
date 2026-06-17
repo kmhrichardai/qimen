@@ -4,11 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>奇門遁甲 - AI問事 (九宮全資訊版)</title>
+
+<script src="https://unpkg.com/lunar-javascript/lunar.js"></script>
+
 <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; padding: 15px; margin: 0; padding-bottom: 120px; color: #1c1c1e; }
     h2 { font-size: 20px; color: #000; margin-top: 5px; }
     .top-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); }
-    select { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fff; margin-top: 8px; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
+    select, .datetime-input { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fff; margin-top: 8px; -webkit-appearance: none; appearance: none; box-sizing: border-box; }
+    .datetime-input { font-family: inherit; }
     .panel { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); }
     
     .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px; margin-bottom: 12px; }
@@ -33,7 +37,7 @@
     .select-container::after { content: "▼"; font-size: 12px; color: #8e8e93; position: absolute; right: 12px; top: 18px; pointer-events: none; }
     .panel-header .select-container::after { top: 10px; right: 8px; font-size: 10px; }
     
-    textarea#previewArea { width: 100%; height: 180px; padding: 12px; font-family: monospace; font-size: 14px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fafafa; color: #333; box-sizing: border-box; resize: none; margin-top: 8px; }
+    textarea#previewArea { width: 100%; height: 250px; padding: 12px; font-family: monospace; font-size: 14px; border-radius: 8px; border: 1px solid #c7c7cc; background: #fafafa; color: #333; box-sizing: border-box; resize: none; margin-top: 8px; }
     
     /* 九宮格主體優化 */
     .jiugong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: #c7c7cc; border: 2px solid #8e8e93; border-radius: 8px; margin-top: 10px; align-items: stretch; }
@@ -77,6 +81,16 @@
 
 <div class="top-bar">
     <h2>奇門遁甲 - AI問事輸入板</h2>
+    
+    <label style="font-weight:bold; color:#ff3b30;">0. 時間與四柱排盤 (選填)：</label>
+    <div class="harm-group" style="margin-top:8px; margin-bottom: 10px;">
+        <label><input type="checkbox" id="useTimeInfo" onchange="toggleTimeInput(); updatePreview()"><div class="btn-check">加入開盤時間與四柱</div></label>
+    </div>
+    <div id="timeInputGroup" style="display:none; margin-bottom: 15px;">
+        <input type="datetime-local" id="qimenDateTime" class="datetime-input" onchange="updatePreview()">
+        <div style="font-size:12px; color:#8e8e93; margin-top:4px;">系統將自動換算為農曆、八字與節氣。</div>
+    </div>
+
     <label style="font-weight:bold; color:#007aff;">1. 設定排盤基礎 (用於全自動算暗干)：</label>
     <div style="display:flex; gap:10px; margin-top:8px; margin-bottom: 15px;">
         <div class="select-container" style="flex:1;">
@@ -170,6 +184,57 @@ const changshengData = {
     "離九宮(火)": { "甲":"死", "乙":"長生", "丙":"帝旺", "丁":"臨官", "戊":"帝旺", "己":"臨官", "庚":"沐浴", "辛":"病", "壬":"胎", "癸":"絕" }
 };
 
+// 初始化時間輸入框為當前時間
+function initDateTime() {
+    let now = new Date();
+    let year = now.getFullYear();
+    let month = String(now.getMonth() + 1).padStart(2, '0');
+    let day = String(now.getDate()).padStart(2, '0');
+    let hours = String(now.getHours()).padStart(2, '0');
+    let minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById("qimenDateTime").value = `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// 切換時間輸入框的顯示狀態
+function toggleTimeInput() {
+    const show = document.getElementById("useTimeInfo").checked;
+    document.getElementById("timeInputGroup").style.display = show ? "block" : "none";
+}
+
+// 產生農曆與八字排盤字串
+function getCalculatedTimeInfo() {
+    if (!document.getElementById("useTimeInfo").checked) return "";
+    let dtVal = document.getElementById("qimenDateTime").value;
+    if (!dtVal) return "";
+
+    try {
+        let date = new Date(dtVal);
+        let solar = Solar.fromDate(date);
+        let lunar = solar.getLunar();
+
+        let week = lunar.getWeekInChinese();
+        let gregStr = `${solar.getYear()}-${String(solar.getMonth()).padStart(2,'0')}-${String(solar.getDay()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')} 星期${week}`;
+        
+        let lunarStr = `${lunar.getYearInChinese()}年 ${lunar.getMonthInChinese()}月${lunar.getDayInChinese()} ${lunar.getTimeZhi()}時`;
+        
+        let bazi = lunar.getEightChar();
+        let baziStr = `${bazi.getYear()}年 ${bazi.getMonth()}月 ${bazi.getDay()}日 ${bazi.getTime()}時`;
+
+        let prevJieQi = lunar.getPrevJieQi();
+        let nextJieQi = lunar.getNextJieQi();
+        let jqStr = "";
+        if (prevJieQi && nextJieQi) {
+            let pSolar = prevJieQi.getSolar();
+            let nSolar = nextJieQi.getSolar();
+            jqStr = `節氣 : ${prevJieQi.getName()} (${pSolar.getDay()}日${pSolar.getHour()}時${pSolar.getMinute()}分) -> ${nextJieQi.getName()} (${nSolar.getDay()}日${nSolar.getHour()}時${nSolar.getMinute()}分)`;
+        }
+
+        return `<開盤時間資訊>\n西曆 : ${gregStr}\n農曆 : ${lunarStr}\n四柱 : ${baziStr}\n${jqStr}\n==============================\n`;
+    } catch(e) {
+        return "時間資訊計算錯誤，請確認網路與格式。\n==============================\n";
+    }
+}
+
 function getChangsheng(palace, gan) {
     if (!changshengData[palace] || !gan) return "";
     return changshengData[palace][gan] || "";
@@ -222,7 +287,6 @@ function autoCalcAnGan(idx) {
     let autoGan = map[homeP];
     let autoGan2 = null;
     
-    // 陰盤核心修正：如果當前排在坤二宮，則帶出中五宮的暗干 (寄宮雙干)
     if (curPalace === "坤二宮(土)") {
         autoGan2 = map[5];
     }
@@ -264,6 +328,7 @@ function handleRadioClick(radio) {
 }
 
 window.onload = function() {
+    initDateTime();
     const sel = document.getElementById("topicSelect");
     for(let t in topics) { sel.add(new Option(t, t)); }
     renderPanels();
@@ -301,7 +366,6 @@ function renderPanels() {
             </div>
         </div>`;
         
-        // 修正點：切換宮位時，同時觸發暗干計算（對應寄宮變更）
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
                 <select class="palace-sel" style="flex:1; margin-top:0;" onchange="autoCalcAnGan(${idx}); updatePreview()">` + dropdownPalaces.map(x=>`<option value="${x}">${x}</option>`).join('') + `</select>
@@ -331,7 +395,6 @@ function renderPanels() {
             <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[入墓]</div></label>
         </div></div>`;
 
-        // 修正點：暗干由 Radio 改為 Checkbox，允許雙干選擇
         html += `<div class="form-group angan-group"><label class="title" style="color:#007aff;">5. 暗干 (最多支援2項，選好排盤條件後自動算出)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="an-gan-cb" name="ag_${idx}" value="${t}" onchange="checkLimit(this, 'an-gan-cb'); updatePreview()"><div class="btn-check">${t}</div></label>`; });
         html += `</div></div>`;
@@ -396,7 +459,6 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetPanel.querySelector('.di-jx-2').checked = sourcePanel.querySelector('.di-jx-2').checked;
     targetPanel.querySelector('.di-rm-2').checked = sourcePanel.querySelector('.di-rm-2').checked;
 
-    // 修正點：處理雙暗干的複製邏輯
     const sourceAgs = sourcePanel.querySelectorAll(`input[name="ag_${sourceIdx}"]:checked`);
     const targetAgs = targetPanel.querySelectorAll(`input[name="ag_${targetIdx}"]`);
     targetAgs.forEach(cb => cb.checked = false);
@@ -472,6 +534,11 @@ function clearAllSelections() {
 
 function getOutputString() {
     let output = [];
+    
+    // 注入新版時間資訊
+    let timeInfo = getCalculatedTimeInfo();
+    if (timeInfo) output.push(timeInfo);
+
     let topicText = document.getElementById("topicSelect").value.split(" ")[0];
     let dunText = document.getElementById("dunType").options[document.getElementById("dunType").selectedIndex].text;
     let juText = document.getElementById("juNum").options[document.getElementById("juNum").selectedIndex].text;
@@ -527,7 +594,6 @@ function getOutputString() {
             lines.push(`天盤甲藏 : ${jiaStr.trim()}${csJiaStr}${tHarm1Str}`);
         }
 
-        // 修正點：支援文本輸出多重暗干
         let anGanCbs = Array.from(p.querySelectorAll(`input[name="ag_${idx}"]:checked`)).map(x=>x.value);
         if (showAG && anGanCbs.length > 0) {
             lines.push(`暗干 : ${anGanCbs.join(" + ")}`);
@@ -610,7 +676,7 @@ function updatePreview() {
         if(cell) {
             let contentDiv = cell.querySelector('.cell-content');
             if(!contentDiv) return;
-            if(pName === "陰盤(無中)") contentDiv.innerHTML = ""; // 如果被選到中宮，先清空預設文字
+            if(pName === "陰盤(無中)") contentDiv.innerHTML = "";
             
             let godShort = p.dataset.godname.split(" ")[0]; 
             
@@ -678,7 +744,6 @@ function updatePreview() {
             }
             let dGansStr = dGansDisplay.join("+");
 
-            // 修正點：支援九宮格圖表預覽多重暗干
             let anGanCbs = Array.from(p.querySelectorAll(`input[name="ag_${idx}"]:checked`)).map(x=>x.value);
             let anGanStr = (showAG && anGanCbs.length > 0) ? `<span style="color:#007aff; font-weight:bold;">(${anGanCbs.join("+")})</span>` : "";
 
