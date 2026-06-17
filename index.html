@@ -21,10 +21,9 @@
     .grid-5, .grid-4 { display: grid; gap: 8px; }
     .grid-5 { grid-template-columns: repeat(5, 1fr); }
     .grid-4 { grid-template-columns: repeat(4, 1fr); }
-    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; text-align: center; }
+    .btn-check { display: flex; align-items: center; justify-content: center; background: #f2f2f7; border: 1px solid #d1d1d6; border-radius: 6px; padding: 10px 0; font-size: 14px; color: #1c1c1e; transition: 0.2s; user-select: none; text-align: center; -webkit-tap-highlight-color: transparent; }
     input[type="checkbox"], input[type="radio"] { display: none; }
     
-    /* 修正被選取時字體被遮住的問題，加入 color: #fff !important; 強制白字 */
     input[type="checkbox"]:checked + .btn-check, input[type="radio"]:checked + .btn-check { background: #007aff; color: #fff !important; border-color: #007aff; font-weight: bold; }
     input[type="checkbox"]:disabled + .btn-check { opacity: 0.5; }
     
@@ -48,6 +47,9 @@
     .god-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 11px; }
     .god-info-gan { margin-top: 2px; font-size: 11px; }
 
+    /* 中宮特別視覺樣式 */
+    #cell_陰盤\(無中\) { background: #f2f2f7; justify-content: center; color: #8e8e93; font-weight: bold; }
+
     /* --- 手機端適應度優化 --- */
     @media (max-width: 400px) {
         .jiugong-cell { min-height: 110px; padding: 4px; }
@@ -60,11 +62,11 @@
         .god-info-gan { font-size: 10px; margin-top: 1px; letter-spacing: -0.3px; }
     }
 
-    .inner-copy-btn { width: 100%; margin-top: 12px; background: #34c759; color: #fff; padding: 10px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .inner-copy-btn { width: 100%; margin-top: 12px; background: #34c759; color: #fff; padding: 10px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
     .inner-copy-btn:active { background: #28a745; }
 
     .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 15px 20px; border-top: 1px solid #e5e5ea; display: flex; gap: 15px; z-index: 100; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
-    .bottom-bar button { flex: 1; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; transition: 0.2s; }
+    .bottom-bar button { flex: 1; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
     .btn-clear { background: #ff3b30; color: #fff; }
     .btn-clear:active { background: #d32f2f; }
     .btn-copy { background: #34c759; color: #fff; }
@@ -114,7 +116,7 @@
         <div class="jiugong-cell" id="cell_坤二宮(土)"><div class="cell-title">坤二宮(土)</div><div class="cell-content"></div></div>
         
         <div class="jiugong-cell" id="cell_震三宮(木)"><div class="cell-title">震三宮(木)</div><div class="cell-content"></div></div>
-        <div class="jiugong-cell" id="cell_陰盤(無中)"><div class="cell-title">陰盤(無中)</div><div class="cell-content"></div></div>
+        <div class="jiugong-cell" id="cell_陰盤(無中)"><div class="cell-title">中宮</div><div class="cell-content" style="text-align:center; display:flex; align-items:center; justify-content:center; color:#8e8e93;">陰盤無中</div></div>
         <div class="jiugong-cell" id="cell_兌七宮(金)"><div class="cell-title">兌七宮(金)</div><div class="cell-content"></div></div>
         
         <div class="jiugong-cell" id="cell_艮八宮(土)"><div class="cell-title">艮八宮(土)</div><div class="cell-content"></div></div>
@@ -197,6 +199,8 @@ function autoCalcAnGan(idx) {
     let juNum = parseInt(document.getElementById("juNum").value);
     
     let doorRadio = panel.querySelector(`input[name="door_${idx}"]:checked`);
+    let curPalace = panel.querySelector('.palace-sel').value;
+    
     if (!doorRadio) return;
     
     let door = doorRadio.value;
@@ -216,15 +220,19 @@ function autoCalcAnGan(idx) {
     }
     
     let autoGan = map[homeP];
+    let autoGan2 = null;
     
-    let anGanRadios = panel.querySelectorAll(`input[name="ag_${idx}"]`);
-    anGanRadios.forEach(r => {
-        if (r.value === autoGan) {
-            r.checked = true;
-            r.dataset.checked = "true";
+    // 陰盤核心修正：如果當前排在坤二宮，則帶出中五宮的暗干 (寄宮雙干)
+    if (curPalace === "坤二宮(土)") {
+        autoGan2 = map[5];
+    }
+    
+    let anGanCbs = panel.querySelectorAll(`input[name="ag_${idx}"]`);
+    anGanCbs.forEach(cb => {
+        if (cb.value === autoGan || cb.value === autoGan2) {
+            cb.checked = true;
         } else {
-            r.checked = false;
-            r.dataset.checked = "false";
+            cb.checked = false;
         }
     });
 }
@@ -293,9 +301,10 @@ function renderPanels() {
             </div>
         </div>`;
         
+        // 修正點：切換宮位時，同時觸發暗干計算（對應寄宮變更）
         html += `<div class="form-group"><label class="title">1. 宮位與甲藏</label>
             <div style="display:flex; gap:10px;">
-                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + dropdownPalaces.map(x=>`<option value="${x}">${x}</option>`).join('') + `</select>
+                <select class="palace-sel" style="flex:1; margin-top:0;" onchange="autoCalcAnGan(${idx}); updatePreview()">` + dropdownPalaces.map(x=>`<option value="${x}">${x}</option>`).join('') + `</select>
                 <select class="jia-sel" style="flex:1; margin-top:0;" onchange="updatePreview()">` + Object.keys(jiaMap).map(x=>`<option value="${jiaMap[x]}">${x}</option>`).join('') + `</select>
             </div>
         </div>`;
@@ -306,7 +315,6 @@ function renderPanels() {
 
         html += `<div class="form-group"><label class="title">3. 天盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="tian-gan" value="${t}" onchange="checkLimit(this, 'tian-gan')"><div class="btn-check">${t}</div></label>`; });
-        // 已修正為綠色 #27ae60
         html += `</div><div class="grid-4" style="margin-top:8px;">
             <label><input type="checkbox" class="tian-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[擊刑]</div></label>
             <label><input type="checkbox" class="tian-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[入墓]</div></label>
@@ -316,7 +324,6 @@ function renderPanels() {
 
         html += `<div class="form-group"><label class="title">4. 地盤天干 (最多2項)</label><div class="grid-5">`;
         tiangan.forEach(t => { html += `<label><input type="checkbox" class="di-gan" value="${t}" onchange="checkLimit(this, 'di-gan')"><div class="btn-check">${t}</div></label>`; });
-        // 已修正為綠色 #27ae60
         html += `</div><div class="grid-4" style="margin-top:8px;">
             <label><input type="checkbox" class="di-jx-1" value="擊刑" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[擊刑]</div></label>
             <label><input type="checkbox" class="di-rm-1" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">首干[入墓]</div></label>
@@ -324,8 +331,9 @@ function renderPanels() {
             <label><input type="checkbox" class="di-rm-2" value="入墓" onchange="updatePreview()"><div class="btn-check" style="font-size:13px; color:#27ae60;">次干[入墓]</div></label>
         </div></div>`;
 
-        html += `<div class="form-group angan-group"><label class="title" style="color:#007aff;">5. 暗干 (選好局數與八門即自動計算，亦可手動改)</label><div class="grid-5">`;
-        tiangan.forEach(t => { html += `<label><input type="radio" class="an-gan-radio" name="ag_${idx}" value="${t}" onclick="handleRadioClick(this)"><div class="btn-check">${t}</div></label>`; });
+        // 修正點：暗干由 Radio 改為 Checkbox，允許雙干選擇
+        html += `<div class="form-group angan-group"><label class="title" style="color:#007aff;">5. 暗干 (最多支援2項，選好排盤條件後自動算出)</label><div class="grid-5">`;
+        tiangan.forEach(t => { html += `<label><input type="checkbox" class="an-gan-cb" name="ag_${idx}" value="${t}" onchange="checkLimit(this, 'an-gan-cb'); updatePreview()"><div class="btn-check">${t}</div></label>`; });
         html += `</div></div>`;
 
         html += `<div class="form-group"><label class="title">6. 九星</label><div class="grid-4">`;
@@ -367,8 +375,10 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetTgs.forEach(r => r.dataset.checked = "false");
     if (sourceTg) {
         let tRadio = targetPanel.querySelector(`input[name="tg_${targetIdx}"][value="${sourceTg.value}"]`);
-        tRadio.checked = true;
-        tRadio.dataset.checked = "true";
+        if(tRadio) {
+            tRadio.checked = true;
+            tRadio.dataset.checked = "true";
+        }
     } else {
         const checkedTg = targetPanel.querySelector(`input[name="tg_${targetIdx}"]:checked`);
         if (checkedTg) checkedTg.checked = false;
@@ -386,25 +396,24 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetPanel.querySelector('.di-jx-2').checked = sourcePanel.querySelector('.di-jx-2').checked;
     targetPanel.querySelector('.di-rm-2').checked = sourcePanel.querySelector('.di-rm-2').checked;
 
-    const sourceAg = sourcePanel.querySelector(`input[name="ag_${sourceIdx}"]:checked`);
+    // 修正點：處理雙暗干的複製邏輯
+    const sourceAgs = sourcePanel.querySelectorAll(`input[name="ag_${sourceIdx}"]:checked`);
     const targetAgs = targetPanel.querySelectorAll(`input[name="ag_${targetIdx}"]`);
-    targetAgs.forEach(r => r.dataset.checked = "false");
-    if (sourceAg) {
-        let tRadio = targetPanel.querySelector(`input[name="ag_${targetIdx}"][value="${sourceAg.value}"]`);
-        tRadio.checked = true;
-        tRadio.dataset.checked = "true";
-    } else {
-        const checkedAg = targetPanel.querySelector(`input[name="ag_${targetIdx}"]:checked`);
-        if (checkedAg) checkedAg.checked = false;
-    }
+    targetAgs.forEach(cb => cb.checked = false);
+    sourceAgs.forEach(sCb => {
+        let tCb = targetPanel.querySelector(`input[name="ag_${targetIdx}"][value="${sCb.value}"]`);
+        if(tCb) tCb.checked = true;
+    });
 
     const sourceStar = sourcePanel.querySelector(`input[name="star_${sourceIdx}"]:checked`);
     const targetStars = targetPanel.querySelectorAll(`input[name="star_${targetIdx}"]`);
     targetStars.forEach(r => r.dataset.checked = "false");
     if (sourceStar) {
         let tRadio = targetPanel.querySelector(`input[name="star_${targetIdx}"][value="${sourceStar.value}"]`);
-        tRadio.checked = true;
-        tRadio.dataset.checked = "true";
+        if(tRadio) {
+            tRadio.checked = true;
+            tRadio.dataset.checked = "true";
+        }
     } else {
         const checkedStar = targetPanel.querySelector(`input[name="star_${targetIdx}"]:checked`);
         if (checkedStar) checkedStar.checked = false;
@@ -415,8 +424,10 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetDoors.forEach(r => r.dataset.checked = "false");
     if (sourceDoor) {
         let tRadio = targetPanel.querySelector(`input[name="door_${targetIdx}"][value="${sourceDoor.value}"]`);
-        tRadio.checked = true;
-        tRadio.dataset.checked = "true";
+        if(tRadio) {
+            tRadio.checked = true;
+            tRadio.dataset.checked = "true";
+        }
     } else {
         const checkedDoor = targetPanel.querySelector(`input[name="door_${targetIdx}"]:checked`);
         if (checkedDoor) checkedDoor.checked = false;
@@ -428,8 +439,10 @@ function copyPanelData(targetIdx, sourceIdx) {
     targetDgs.forEach(r => r.dataset.checked = "false");
     if (sourceDg) {
         let tRadio = targetPanel.querySelector(`input[name="dg_${targetIdx}"][value="${sourceDg.value}"]`);
-        tRadio.checked = true;
-        tRadio.dataset.checked = "true";
+        if(tRadio) {
+            tRadio.checked = true;
+            tRadio.dataset.checked = "true";
+        }
     } else {
         const checkedDg = targetPanel.querySelector(`input[name="dg_${targetIdx}"]:checked`);
         if (checkedDg) checkedDg.checked = false;
@@ -514,9 +527,10 @@ function getOutputString() {
             lines.push(`天盤甲藏 : ${jiaStr.trim()}${csJiaStr}${tHarm1Str}`);
         }
 
-        let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
-        if (showAG && anGanRadio) {
-            lines.push(`暗干 : ${anGanRadio.value}`);
+        // 修正點：支援文本輸出多重暗干
+        let anGanCbs = Array.from(p.querySelectorAll(`input[name="ag_${idx}"]:checked`)).map(x=>x.value);
+        if (showAG && anGanCbs.length > 0) {
+            lines.push(`暗干 : ${anGanCbs.join(" + ")}`);
         }
 
         let dGans = Array.from(p.querySelectorAll('.di-gan:checked')).map(x=>x.value);
@@ -560,7 +574,7 @@ function getOutputString() {
         let specs = [];
         if(p.querySelector('.spec-kw') && p.querySelector('.spec-kw').checked) specs.push("空亡");
         if(p.querySelector('.spec-mx') && p.querySelector('.spec-mx').checked) specs.push("馬星");
-        if(specs.length) lines.push(`\n狀態 : ${specs.join(" / ")}`);
+        if(specs.length) lines.push(`狀態 : ${specs.join(" / ")}`);
 
         output.push(lines.join("\n"));
         output.push("\n--------------------\n");
@@ -575,7 +589,13 @@ function updatePreview() {
 
     allPalaces.forEach(pName => {
         const cell = document.getElementById("cell_" + pName);
-        if(cell) cell.querySelector('.cell-content').innerHTML = "";
+        if(cell) {
+            if (pName === "陰盤(無中)") {
+                cell.querySelector('.cell-content').innerHTML = "陰盤無中";
+            } else {
+                cell.querySelector('.cell-content').innerHTML = "";
+            }
+        }
     });
 
     let showCS = document.getElementById("toggleChangsheng").checked;
@@ -589,6 +609,9 @@ function updatePreview() {
         
         if(cell) {
             let contentDiv = cell.querySelector('.cell-content');
+            if(!contentDiv) return;
+            if(pName === "陰盤(無中)") contentDiv.innerHTML = ""; // 如果被選到中宮，先清空預設文字
+            
             let godShort = p.dataset.godname.split(" ")[0]; 
             
             let tGod = p.querySelector(`input[name="tg_${idx}"]:checked`) ? p.querySelector(`input[name="tg_${idx}"]:checked`).value : "";
@@ -655,8 +678,9 @@ function updatePreview() {
             }
             let dGansStr = dGansDisplay.join("+");
 
-            let anGanRadio = p.querySelector(`input[name="ag_${idx}"]:checked`);
-            let anGanStr = (showAG && anGanRadio) ? `<span style="color:#007aff; font-weight:bold;">(${anGanRadio.value})</span>` : "";
+            // 修正點：支援九宮格圖表預覽多重暗干
+            let anGanCbs = Array.from(p.querySelectorAll(`input[name="ag_${idx}"]:checked`)).map(x=>x.value);
+            let anGanStr = (showAG && anGanCbs.length > 0) ? `<span style="color:#007aff; font-weight:bold;">(${anGanCbs.join("+")})</span>` : "";
 
             let gansDisplay = "";
             if (tGansStr || dGansStr) {
@@ -703,12 +727,14 @@ function copyToClipboard() {
 
 function fallbackCopy(text) {
     let tempArea = document.createElement("textarea");
-    text = text.replace(/\n/g, '\r\n'); // 強化行動版換行相容性
+    text = text.replace(/\n/g, '\r\n'); 
     tempArea.value = text;
     tempArea.style.position = "absolute";
     tempArea.style.left = "-9999px";
     document.body.appendChild(tempArea);
+    tempArea.focus();
     tempArea.select();
+    tempArea.setSelectionRange(0, 99999); 
     try {
         document.execCommand("copy");
         showSuccessState();
